@@ -32,6 +32,7 @@ import '../../services/ramzram.dart';
 import '../../services/gpu.dart';
 import '../../shell/superuser.dart';
 import '../../theme/theme_provider.dart';
+import '../statusbar/sb_deviceinfo.dart';
 import '../../widgets/cards.dart';
 
 // ---- MAJOR ---
@@ -55,7 +56,6 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
     // --- Sub
     // Watch Hardware Data
     final infoAsync = ref.watch(vendorInfoProvider);
-
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
@@ -81,7 +81,7 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
               ),
               child: Stack(
                 children: [
-                  // Detail: Primary Glow
+                  // Primary Glow
                   Positioned(
                     top: -120,
                     left: -120,
@@ -102,7 +102,7 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
                         end: const Offset(-30, 30),
                         duration: 12.seconds),
                   ),
-                  // Detail: Secondary Glow
+                  // Secondary Glow
                   Positioned(
                     bottom: -80,
                     right: -80,
@@ -134,15 +134,15 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
             data: (info) => CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                // Detail: Header Space (Reduced since floating bar is adjusted)
+                // Header Space
                 SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
 
-                // Detail: Premium Brand Hero Section
+                // Premium Brand Hero Section
                 SliverToBoxAdapter(child: _buildHeroBanner(context, info)),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-                // Detail: Essential Specification Cards
+                // Essential Specification Cards
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverList(
@@ -163,6 +163,15 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) =>
                 _ErrorState(error: err.toString(), theme: Theme.of(context)),
+          ),
+
+          // --- Sub
+          // 3. Floating Status Bar
+          Positioned(
+            top: topPadding + 10,
+            left: 0,
+            right: 0,
+            child: const DeviceInfoStatusBar(),
           ),
         ],
       ),
@@ -213,7 +222,7 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
         break;
     }
 
-    // Comment: Final fallback if asset/file is missing
+    // Final fallback if asset/file is missing
     if (decorationImage == null && fallbackWidget == null) {
       decorationImage = const DecorationImage(
         image: AssetImage('assets/banner/banner-1.jpg'),
@@ -223,7 +232,7 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      height: 220, // Increased height for "Hero" feel
+      height: 220,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
@@ -337,7 +346,7 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
           _DetailTile(
               icon: LucideIcons.cpu,
               label: "Platform",
-              value: info.vendorChipset,
+              value: info.board,
               theme: Theme.of(context)),
         ],
       ),
@@ -358,7 +367,7 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
           _DetailTile(
               icon: LucideIcons.hash,
               label: "SDK Level",
-              value: info.apiLevel.toString(),
+              value: info.sdkLevel.toString(),
               theme: Theme.of(context)),
           _DetailTile(
               icon: LucideIcons.shieldCheck,

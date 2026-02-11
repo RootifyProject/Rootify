@@ -14,18 +14,30 @@
  * limitations under the License.
  */
 
+// ---- SYSTEM ---
 import 'package:flutter/material.dart';
+
+// ---- EXTERNAL ---
 import 'package:lucide_icons/lucide_icons.dart';
+
+// ---- LOCAL ---
 import '../../widgets/cards.dart';
 
+// ---- MAJOR ---
+// Standardized Technical Documentation Overlay
 class HelpOverlay {
+  // ---- LOGIC HANDLERS ---
+
   static void show(
     BuildContext context, {
     required String title,
     required String description,
     required String usage,
   }) {
+    // --- Sub
+    // Theme & Assets
     final theme = Theme.of(context);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -35,6 +47,7 @@ class HelpOverlay {
         contentPadding: const EdgeInsets.all(20),
         title: Row(
           children: [
+            // Category Icon
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -55,12 +68,15 @@ class HelpOverlay {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // --- Sub
+            // Documentation Body
             RootifySubCard(
               padding: const EdgeInsets.all(16),
               margin: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Textual Description
                   const Text("DESCRIPTION",
                       style: TextStyle(
                           fontSize: 10,
@@ -72,6 +88,7 @@ class HelpOverlay {
                           fontSize: 13,
                           color: theme.colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 20),
+                  // Usage Metadata
                   const Text("USAGE / EXAMPLE",
                       style: TextStyle(
                           fontSize: 10,
@@ -103,6 +120,7 @@ class HelpOverlay {
           ],
         ),
         actions: [
+          // Navigation Control
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text("CLOSE",

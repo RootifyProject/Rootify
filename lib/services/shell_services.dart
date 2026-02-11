@@ -50,7 +50,7 @@ class ShellService {
   Future<void> validateSession() async {
     logger.d("ShellService: Validating shell session...");
     try {
-      // Comment: Fast ping to ensure shell responsiveness
+      // Fast ping to ensure shell responsiveness
       final ping = await exec("echo 1", canSkip: false)
           .timeout(const Duration(seconds: 1));
       if (ping.trim() != "1") {
@@ -82,7 +82,7 @@ class ShellService {
   // --- Sub
   // Root State Discovery Logic
   Future<String?> checkRootCompliance() async {
-    // Comment: Implement 5-minute cache to avoid spamming "pm list packages"
+    // Implement 5-minute cache to avoid spamming "pm list packages"
     if (_rootComplianceCache != null &&
         _lastComplianceCheck != null &&
         DateTime.now().difference(_lastComplianceCheck!) <
@@ -133,7 +133,7 @@ class ShellService {
   }) async {
     logger.i("ShellService: Synchronizing Magisk/KSU boot module...");
 
-    // Comment: MAGISK / KERNELSU MODULE ARCHITECTURE
+    // MAGISK / KERNELSU MODULE ARCHITECTURE
     const moduleDir = "/data/adb/modules/rootify";
     const zigbinPath = "$moduleDir/zigbin"; // The payload script
     const servicePath = "$moduleDir/service.sh"; // The launcher
@@ -146,7 +146,7 @@ class ShellService {
     sb.writeln("#!/system/bin/sh");
     sb.writeln("# (c) 2026 Rootify. All rights reserved.");
 
-    // Comment: CPU Dynamic Governor & Frequency Persistence
+    // CPU Dynamic Governor & Frequency Persistence
     if (cpuEnabled && !cpuDisabled && cpuSettings.isNotEmpty) {
       cpuSettings.forEach((policy, data) {
         final path = "/sys/devices/system/cpu/cpufreq/$policy";
@@ -170,7 +170,7 @@ class ShellService {
       });
     }
 
-    // Comment: ZRAM & VM Subsystem Tuning
+    // ZRAM & VM Subsystem Tuning
     if (zramEnabled) {
       if (zramSizeMb > 0) {
         sb.writeln("swapoff /dev/block/zram0 2>/dev/null");
@@ -193,7 +193,7 @@ class ShellService {
       }
     }
 
-    // Comment: Thermal Mitigation Overrides
+    // Thermal Mitigation Overrides
     if (thermalEnabled) {
       if (thermalDisabled) {
         sb.writeln("stop thermal-engine; stop thermald; stop mi_thermald;");
@@ -204,7 +204,7 @@ class ShellService {
       }
     }
 
-    // Comment: Background DAEMON Activation
+    // Background DAEMON Activation
     if (layaEnabled && activeLayaModules.isNotEmpty) {
       for (final module in activeLayaModules) {
         final binPath = "/data/data/com.aby.rootify/files/bin/$module";
@@ -212,7 +212,7 @@ class ShellService {
       }
     }
 
-    // Comment: MTK/QCOM FPSGO Parameter Injection
+    // MTK/QCOM FPSGO Parameter Injection
     if (fpsGoEnabled == true && fpsGoSettings != null) {
       final path = fpsGoSettings['path'] as String?;
       final rawEnabled = fpsGoSettings['enabled'];
@@ -245,14 +245,14 @@ class ShellService {
       final tempDir = await getTemporaryDirectory();
       await exec("mkdir -p $moduleDir");
 
-      // Comment: Generate module.prop metadata
+      // Generate module.prop metadata
       final propContent =
           "id=rootify\nname=Rootify\nversion=$appVersion\nversionCode=$versionCode\nauthor=Rootify\ndescription=Systemless Rootify Module for persistent tweaks.";
       final tempProp = File('${tempDir.path}/module.prop');
       await tempProp.writeAsString(propContent);
       await exec("mv -f ${tempProp.path} $propPath");
 
-      // Comment: Generate service.sh boot-time launcher
+      // Generate service.sh boot-time launcher
       final serviceContent = '''#!/system/bin/sh
 # (c) 2026 Rootify. All rights reserved.
 MODDIR=\${0%/*}
@@ -273,7 +273,7 @@ sh \$MODDIR/zigbin &
       await exec("mv -f ${tempService.path} $servicePath");
       await exec("chmod +x $servicePath");
 
-      // Comment: Generate action.sh for KSU manager integration
+      // Generate action.sh for KSU manager integration
       const actionContent =
           "#!/system/bin/sh\nam start -n com.aby.rootify/.MainActivity";
       final tempAction = File('${tempDir.path}/action.sh');
@@ -281,7 +281,7 @@ sh \$MODDIR/zigbin &
       await exec("mv -f ${tempAction.path} $actionPath");
       await exec("chmod +x $actionPath");
 
-      // Comment: Generate uninstall.sh for systemless cleanup
+      // Generate uninstall.sh for systemless cleanup
       const uninstallContent = '''#!/system/bin/sh
 # (c) 2026 Rootify. All rights reserved.
 pkill -f laya-kernel-tuner 2>/dev/null
@@ -298,14 +298,14 @@ pm uninstall -k com.aby.rootify 2>/dev/null || true
       await exec("mv -f ${tempUninstall.path} $uninstallPath");
       await exec("chmod +x $uninstallPath");
 
-      // Comment: Generate final zigbin binary payload
+      // Generate final zigbin binary payload
       final zigbinContent = sb.toString();
       final tempZigbin = File('${tempDir.path}/zigbin');
       await tempZigbin.writeAsString(zigbinContent);
       await exec("mv -f ${tempZigbin.path} $zigbinPath");
       await exec("chmod +x $zigbinPath");
 
-      // Comment: Legacy file cleanup and permission enforcement
+      // Legacy file cleanup and permission enforcement
       await exec("rm -f /data/adb/service.d/rootify_boot.sh");
       await exec("chown -R 0.0 $moduleDir");
 
@@ -319,7 +319,7 @@ pm uninstall -k com.aby.rootify 2>/dev/null || true
 // ---- MAJOR ---
 // Global Instances & Providers
 final shellServiceProvider = Provider((ref) {
-  final session = ShellSession(); // Comment: Singleton Lifecycle
+  final session = ShellSession(); // Singleton Lifecycle
   final service = ShellService(session);
   ref.onDispose(() => session.dispose());
   return service;

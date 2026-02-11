@@ -73,7 +73,7 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
       final extDir = await getExternalStorageDirectory();
       if (extDir == null) return;
 
-      // Detail: Ensure /banner/ subdirectory exists
+      // Ensure /banner/ subdirectory exists
       final bannerDir = Directory('${extDir.parent.path}/banner');
       if (!await bannerDir.exists()) {
         await bannerDir.create(recursive: true);
@@ -113,7 +113,7 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
         await bannerDir.create(recursive: true);
       }
 
-      // Detail: Copy to our banner directory
+      // Copy to our banner directory
       final fileName = p.basename(image.path);
       final newFile = File('${bannerDir.path}/$fileName');
       await File(image.path).copy(newFile.path);
@@ -178,7 +178,7 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
                 ),
                 child: Stack(
                   children: [
-                    // Detail: Primary Glow
+                    // Primary Glow
                     Positioned(
                       top: -120,
                       left: -120,
@@ -199,7 +199,7 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
                           end: const Offset(-30, 30),
                           duration: 12.seconds),
                     ),
-                    // Detail: Secondary Glow
+                    // Secondary Glow
                     Positioned(
                       bottom: -80,
                       right: -80,
@@ -230,19 +230,19 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
             CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                // Detail: Header Space
+                // Header Space
                 SliverToBoxAdapter(child: SizedBox(height: topPadding + 85)),
 
-                // Detail: Dimensional Scaling Container
+                // Dimensional Scaling Container
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      // Detail: Technical Guidance Card
+                      // Technical Guidance Card
                       _buildInfoCard(theme),
                       const SizedBox(height: 16),
 
-                      // Detail: System Dynamic Mode
+                      // System Dynamic Mode
                       _buildBannerCard(
                         context,
                         title: 'Default Dynamic',
@@ -267,7 +267,7 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
                       ),
                       const SizedBox(height: 32),
 
-                      // Detail: Built-in Asset Library
+                      // Built-in Asset Library
                       Row(
                         children: [
                           Icon(LucideIcons.image,
@@ -287,7 +287,7 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
                   ),
                 ),
 
-                // Detail: Responsive Grid for Assets
+                // Responsive Grid for Assets
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverGrid(
@@ -320,7 +320,7 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
                   ),
                 ),
 
-                // Detail: User-defined Custom Assets
+                // User-defined Custom Assets
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.only(

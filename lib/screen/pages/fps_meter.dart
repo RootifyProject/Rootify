@@ -120,7 +120,7 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
               ),
               child: Stack(
                 children: [
-                  // Detail: Primary Glow
+                  // Primary Glow
                   Positioned(
                     top: -120,
                     left: -120,
@@ -151,10 +151,10 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
           CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              // Detail: Header Space
+              // Header Space
               SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
 
-              // Detail: Feature Hero Icon
+              // Feature Hero Icon
               SliverToBoxAdapter(
                 child: Center(
                   child: Column(
@@ -190,7 +190,7 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
 
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-              // Detail: Functional Widgets
+              // Functional Widgets
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverList(
@@ -249,7 +249,7 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Detail: Display Toggle
+          // Display Toggle
           _buildActionRow(
             context,
             icon: LucideIcons.mousePointer2,
@@ -271,7 +271,7 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
             },
           ),
           const Divider(height: 32, indent: 40),
-          // Detail: Passthrough Toggle
+          // Passthrough Toggle
           _buildActionRow(
             context,
             icon: LucideIcons.lock,

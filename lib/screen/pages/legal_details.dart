@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
+// ---- SYSTEM ---
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+// ---- EXTERNAL ---
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+// ---- LOCAL ---
 import '../../widgets/cards.dart';
 
+// ---- MAJOR ---
+// Branded Legal Documentation & Asset Viewer
 class LegalDetailsPage extends StatelessWidget {
+  // ---- STATEFUL PARAMETERS ---
   final String title;
   final String assetPath;
   final IconData icon;
@@ -33,8 +40,12 @@ class LegalDetailsPage extends StatelessWidget {
     required this.icon,
   });
 
+  // ---- UI BUILDER ---
+
   @override
   Widget build(BuildContext context) {
+    // --- Sub
+    // Theme & Context
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
@@ -52,7 +63,8 @@ class LegalDetailsPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         body: Stack(
           children: [
-            // --- Premium Background (Mesh Gradient style)
+            // --- Sub
+            // 1. Mirrored Dynamic Mesh Background
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -69,6 +81,7 @@ class LegalDetailsPage extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
+                    // Primary Glow Effect
                     Positioned(
                       top: -120,
                       left: -120,
@@ -94,10 +107,12 @@ class LegalDetailsPage extends StatelessWidget {
               ),
             ),
 
-            // --- Main Content
+            // --- Sub
+            // 2. Main Scrolling Content
             CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
+                // Feature App Bar
                 SliverAppBar(
                   expandedHeight: 180,
                   pinned: true,
@@ -132,6 +147,7 @@ class LegalDetailsPage extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Documentation Content
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),

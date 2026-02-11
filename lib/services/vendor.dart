@@ -28,9 +28,9 @@ class VendorDetails {
   final String model;
   final String codename;
   final String androidVersion;
-  final int apiLevel;
+  final int sdkLevel;
   final String securityPatch;
-  final String vendorChipset;
+  final String board;
   final String hardwareChipset;
   final String kernel;
   final String arch;
@@ -40,9 +40,9 @@ class VendorDetails {
     required this.model,
     required this.codename,
     required this.androidVersion,
-    required this.apiLevel,
+    required this.sdkLevel,
     required this.securityPatch,
-    required this.vendorChipset,
+    required this.board,
     required this.hardwareChipset,
     required this.kernel,
     required this.arch,
@@ -54,9 +54,9 @@ class VendorDetails {
       model: 'Unknown',
       codename: 'Unknown',
       androidVersion: 'Unknown',
-      apiLevel: 0,
+      sdkLevel: 0,
       securityPatch: 'Unknown',
-      vendorChipset: 'Unknown',
+      board: 'Unknown',
       hardwareChipset: 'Unknown',
       kernel: 'Unknown',
       arch: 'Unknown',
@@ -111,9 +111,9 @@ class VendorInfoService {
         model: model,
         codename: codename,
         androidVersion: androidVer,
-        apiLevel: api,
+        sdkLevel: api,
         securityPatch: patch,
-        vendorChipset: vendorChip.toUpperCase(),
+        board: vendorChip.toUpperCase(),
         hardwareChipset: hwChip.isEmpty ? vendorChip.toUpperCase() : hwChip,
         kernel: kernel,
         arch: _val(lines, 9),

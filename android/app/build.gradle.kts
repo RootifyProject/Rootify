@@ -145,8 +145,6 @@ android {
                 keyPassword = keystoreProperties["keyPassword"] as String
                 storeFile = file(keystoreProperties["storeFile"] as String)
                 storePassword = keystoreProperties["storePassword"] as String
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }
@@ -193,7 +191,7 @@ afterEvaluate {
     val targetTasks = listOf("assembleDebug", "assembleProfile", "assembleRelease")
     targetTasks.forEach { taskName ->
         tasks.findByName(taskName)?.doLast {
-            val outputDir = file("$buildDir/outputs/flutter-apk")
+            val outputDir = layout.buildDirectory.dir("outputs/flutter-apk").get().asFile
             val homeDir = System.getProperty("user.home")
             val currentTime = SimpleDateFormat("HH-mm-ss").format(Date())
             val date = SimpleDateFormat("yyyyMMdd").format(Date())
@@ -217,7 +215,7 @@ afterEvaluate {
                 File("$homeDir/Apps/Run/$currentTime.run")
             } else {
                 // Standalone builds go to their respective context-named directories.
-                val destDirName = ctx.capitalize()
+                val destDirName = ctx.replaceFirstChar { it.uppercase() }
                 File("$homeDir/Apps/$destDirName")
             }
             
