@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Rootify - Aby
+ * Copyright (C) 2026 Rootify - Aby - FoxLabs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,8 @@ final systemMonitorProvider =
   yield const SystemStats();
 
   // Comment: Optimized query command - ONLY fetches FPS
-  const cmd = 'dumpsys SurfaceFlinger --timestats -dump | grep "averageFPS" | head -n 1; '
+  const cmd =
+      'dumpsys SurfaceFlinger --timestats -dump | grep "averageFPS" | head -n 1; '
       'dumpsys SurfaceFlinger --timestats -clear';
 
   while (true) {

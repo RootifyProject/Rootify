@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Rootify - Aby
+ * Copyright (C) 2026 Rootify - Aby - FoxLabs
  */
 
 import 'dart:async';

@@ -143,5 +143,5 @@ Rootify is committed to transparency and user privacy. Please refer to our offic
 
 ---
 
-Copyright (C) 2026 Rootify - Aby
+Copyright (C) 2026 Rootify - Aby - FoxLabs
 All Rights Reserved.

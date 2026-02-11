@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Rootify - Aby
+ * Copyright (C) 2026 Rootify - Aby - FoxLabs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,21 +108,21 @@ class _FpsPill extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0xCC000000), // Sedikit lebih gelap biar solid (0xCC)
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: statusColor.withValues(alpha: 0.3),
-            width: 0.5,
-          ),
-          boxShadow: [
-             // Opsional: Shadow tipis biar makin keliatan "melayang" pisah dari background
-             BoxShadow(
-               color: Colors.black.withValues(alpha: 0.2),
-               blurRadius: 4,
-               offset: const Offset(0, 2),
-             )
-          ]
-        ),
+            color: const Color(
+                0xCC000000), // Sedikit lebih gelap biar solid (0xCC)
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: statusColor.withValues(alpha: 0.3),
+              width: 0.5,
+            ),
+            boxShadow: [
+              // Opsional: Shadow tipis biar makin keliatan "melayang" pisah dari background
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              )
+            ]),
         child: Row(
           mainAxisSize: MainAxisSize.min, // PENTING: Biar gak melar
           crossAxisAlignment: CrossAxisAlignment.center,

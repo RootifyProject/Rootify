@@ -2,7 +2,7 @@
 
 **Last Updated: 11 February 2026**
 
-**Copyright (C) 2026 Rootify - Aby**
+**Copyright (C) 2026 Rootify - Aby - FoxLabs**
 
 ---
 
