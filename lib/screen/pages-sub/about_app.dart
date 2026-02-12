@@ -30,9 +30,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../theme/theme_provider.dart';
 import '../../utils/app_logger.dart';
 import '../statusbar/sb_aboutapp.dart';
-import '../../widgets/cards.dart';
 import '../../widgets/toast.dart';
-import 'legal_details.dart';
+import '../pages-sub/details.dart';
+
+// Modular Sections
+import '../widgets/about_widgets.dart';
+import '../widgets/developer.dart';
+import '../widgets/special_thanks.dart';
+import '../widgets/credits.dart';
+import '../widgets/ecosystem.dart';
+import '../widgets/legal.dart';
 
 // ---- MAJOR ---
 // Rootify Software Information Page
@@ -47,7 +54,7 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
   // ---- STATE VARIABLES ---
 
   late Future<PackageInfo> _packageInfo;
-  List<_CreditItem> _credits = [];
+  List<CreditItem> _credits = [];
   bool _showBanner = false;
   int _logoClickCount = 0;
 
@@ -84,7 +91,7 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
       final List<dynamic> data = json.decode(response);
       if (mounted) {
         setState(() {
-          _credits = data.map((item) => _CreditItem.fromJson(item)).toList();
+          _credits = data.map((item) => CreditItem.fromJson(item)).toList();
         });
       }
     } catch (e) {
@@ -120,6 +127,14 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
     final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
     final topPadding = MediaQuery.of(context).padding.top;
+
+    // --- Logic
+    // Group credits by type
+    final specialThanksItems = _credits
+        .where((c) => c.type.toLowerCase() == "special thanks")
+        .toList();
+    final generalCreditsItems =
+        _credits.where((c) => c.type.toLowerCase() == "credits").toList();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -256,179 +271,85 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
 
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                // About: Developer Section
+                // About: Developer Profile
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(context, "Developer"),
-                        _buildClickableContactRow(
-                          context,
-                          icon: LucideIcons.user,
-                          username: '@Dizzy',
-                          userId: '7146954165',
-                        ),
-                      ],
+                    child: DeveloperSection(
+                      onTelegramTap: _launchTelegramUser,
                     ),
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                if (_credits.isNotEmpty) ...[
+                // About: Special Thanks (Dynamic)
+                if (specialThanksItems.isNotEmpty) ...[
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionHeader(context, "Credits"),
-                          ..._credits.map((credit) => _buildClickableContactRow(
-                                context,
-                                icon: LucideIcons.sparkles,
-                                username: '@${credit.name}',
-                                userId: credit.tgid,
-                                subtitle: credit.description,
-                              )),
-                        ],
+                      child: SpecialThanksSection(
+                        items: specialThanksItems,
+                        onTelegramTap: _launchTelegramUser,
                       ),
                     ),
                   ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                // About: Special Thanks
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(context, "Special Thanks"),
-                        _buildClickableContactRow(
-                          context,
-                          icon: LucideIcons.heart,
-                          username: 'TRAVEL - Transsion Developments',
-                          userId: null,
-                          subtitle:
-                              "The birthplace of ideas and a hub for brilliant developers who guided me through complex challenges. A heartfelt thank you to all members for their unwavering support.",
-                        ),
-                      ],
+                // About: Credits (Dynamic)
+                if (generalCreditsItems.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: CreditsSection(
+                        items: generalCreditsItems,
+                        onTelegramTap: _launchTelegramUser,
+                      ),
                     ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                ],
 
                 // About: Ecosystem & Support Links
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(context, "Ecosystem"),
-                        _InfoLinkTile(
-                          icon: LucideIcons.github,
-                          title: "GitHub Repository",
-                          subtitle: "Source code and development",
-                          onTap: () => _launchUrl(
-                              "https://github.com/RootifyProject/rootify"),
-                        ),
-                        _InfoLinkTile(
-                          icon: LucideIcons.send,
-                          title: "Telegram Support Group",
-                          subtitle: "Latest news and updates",
-                          onTap: () => _launchUrl("https://t.me/AbyRootify"),
-                        ),
-                      ],
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: EcosystemSection(
+                      onSourceCodeTap: () => _launchUrl(
+                          'https://github.com/RootifyProject/rootify'),
+                      onSupportTap: () => _launchUrl('https://t.me/AbyRootify'),
                     ),
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                // About: Legal & Attribution Information
+                // About: Legal & Attribution Links
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(context, "Legal"),
-                        _InfoLinkTile(
-                          icon: LucideIcons.gavel,
-                          title: "Rootify EULA",
-                          subtitle: "End-User License Agreement",
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LegalDetailsPage(
-                                title: "Rootify License",
-                                assetPath: "assets/license/LICENSE-Rootify",
-                                icon: LucideIcons.gavel,
-                              ),
-                            ),
-                          ),
-                        ),
-                        _InfoLinkTile(
-                          icon: LucideIcons.scale,
-                          title: "Laya Kernel Tuner",
-                          subtitle: "Licensed under GPL-3.0",
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LegalDetailsPage(
-                                title: "Laya Kernel Tuner License",
-                                assetPath:
-                                    "assets/license/LICENSE-LayaKernelTuner",
-                                icon: LucideIcons.scale,
-                              ),
-                            ),
-                          ),
-                        ),
-                        _InfoLinkTile(
-                          icon: LucideIcons.feather,
-                          title: "Laya Battery Monitor",
-                          subtitle: "Licensed under MIT",
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LegalDetailsPage(
-                                title: "Laya Battery Monitor License",
-                                assetPath:
-                                    "assets/license/LICENSE-LayaBatteryMonitor",
-                                icon: LucideIcons.feather,
-                              ),
-                            ),
-                          ),
-                        ),
-                        _InfoLinkTile(
-                          icon: LucideIcons.package,
-                          title: "OSS Licenses",
-                          subtitle: "Open source attribution",
-                          onTap: () => showLicensePage(context: context),
-                        ),
-                        _InfoLinkTile(
-                          icon: LucideIcons.shield,
-                          title: "Privacy Policy",
-                          subtitle: "How we handle your data",
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LegalDetailsPage(
-                                title: "Privacy Policy",
-                                assetPath:
-                                    "assets/license/PRIVACY-POLICY-Rootify",
-                                icon: LucideIcons.shield,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: LegalSection(
+                      onEulaTap: () => _navigateToDetails(
+                        context,
+                        "Rootify EULA",
+                        'assets/license/LICENSE-Rootify',
+                        LucideIcons.gavel,
+                      ),
+                      onLicenseTap: () => _navigateToDetails(
+                        context,
+                        "Laya Kernel Tuner License",
+                        'assets/license/LICENSE-LayaKernelTuner',
+                        LucideIcons.scale,
+                      ),
+                      onPrivacyPolicyTap: () => _navigateToDetails(
+                        context,
+                        "Privacy Policy",
+                        'assets/license/PRIVACY-POLICY-Rootify',
+                        LucideIcons.shield,
+                      ),
+                      onOssLicensesTap: () => showLicensePage(context: context),
                     ),
                   ),
                 ),
-
                 const SliverToBoxAdapter(child: SizedBox(height: 80)),
               ],
             ),
@@ -447,76 +368,18 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
     );
   }
 
-  // ---- HELPER BUILDERS ---
+  // --- Navigation Helpers
 
-  Widget _buildSectionHeader(BuildContext context, String title) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, bottom: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.5,
-          color: theme.colorScheme.primary,
+  void _navigateToDetails(
+      BuildContext context, String title, String assetPath, IconData icon) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailsPage(
+          title: title,
+          assetPath: assetPath,
+          icon: icon,
         ),
-      ),
-    );
-  }
-
-  Widget _buildClickableContactRow(
-    BuildContext context, {
-    required IconData icon,
-    required String username,
-    String? userId,
-    String? subtitle,
-  }) {
-    final theme = Theme.of(context);
-    final isClickable = userId != null && userId.isNotEmpty;
-
-    return RootifyCard(
-      onTap: isClickable ? () => _launchTelegramUser(userId) : null,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: theme.colorScheme.primary, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  username,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                if (subtitle != null)
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (isClickable)
-            Icon(
-              LucideIcons.externalLink,
-              size: 16,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-        ],
       ),
     );
   }
@@ -524,90 +387,4 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
 
 // ---- SUPPORTING ---
 
-class _CreditItem {
-  final String name;
-  final String tgid;
-  final String description;
-
-  _CreditItem({
-    required this.name,
-    required this.tgid,
-    required this.description,
-  });
-
-  factory _CreditItem.fromJson(Map<String, dynamic> json) {
-    return _CreditItem(
-      name: json['name'] as String,
-      tgid: json['tgid'] as String,
-      description: json['description'] as String,
-    );
-  }
-}
-
 // Clean Link Tile for External Resource Navigation
-class _InfoLinkTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _InfoLinkTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // --- Sub
-    // Theme Context
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return RootifyCard(
-      onTap: onTap,
-      child: Row(
-        children: [
-          // Detail: Destination Icon
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, size: 24, color: colorScheme.primary),
-          ),
-          const SizedBox(width: 16),
-          // Detail: Destination Metadata
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            LucideIcons.externalLink,
-            size: 16,
-            color: colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
-        ],
-      ),
-    );
-  }
-}

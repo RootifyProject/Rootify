@@ -26,14 +26,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/cards.dart';
 
 // ---- MAJOR ---
-// Branded Legal Documentation & Asset Viewer
-class LegalDetailsPage extends StatelessWidget {
+// Branded Metadata & Asset Viewer
+class DetailsPage extends StatelessWidget {
   // ---- STATEFUL PARAMETERS ---
   final String title;
   final String assetPath;
   final IconData icon;
 
-  const LegalDetailsPage({
+  const DetailsPage({
     super.key,
     required this.title,
     required this.assetPath,

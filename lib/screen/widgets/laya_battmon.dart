@@ -27,6 +27,7 @@ import '../pages/addons.dart';
 
 // ---- MAJOR ---
 // Dedicated Widget for Laya Battery Monitor Card
+// --- LayaBatteryMonitorCard
 class LayaBatteryMonitorCard extends ConsumerWidget {
   final VoidCallback onTap;
   final VoidCallback onAction;
@@ -41,6 +42,7 @@ class LayaBatteryMonitorCard extends ConsumerWidget {
     required this.onBootChanged,
   });
 
+  // --- Configuration
   static const config = AddonConfig(
     id: "laya-battery-monitor",
     name: "Laya Battery Monitor",
@@ -52,7 +54,7 @@ class LayaBatteryMonitorCard extends ConsumerWidget {
     author: "Laya",
     license: "MIT",
     licensePath: "assets/license/LICENSE-LayaBatteryMonitor",
-    icon: LucideIcons.batteryCharging,
+    icon: LucideIcons.battery,
     features: [
       "Smart CPU Policy Handling",
       "Event-Driven Power Saving",
@@ -63,6 +65,8 @@ class LayaBatteryMonitorCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // --- Sub
+    // State Management
     final moduleState = ref.watch(moduleStateProvider);
 
     final isRunning = moduleState.isBatteryMonitorRunning;
@@ -71,6 +75,8 @@ class LayaBatteryMonitorCard extends ConsumerWidget {
     final pid = moduleState.bmPid;
     final isProcessing = moduleState.processingAddons[config.id] ?? false;
 
+    // --- Sub
+    // Card Rendering
     return AddonCard(
       config: config,
       isRunning: isRunning,

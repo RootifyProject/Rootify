@@ -27,6 +27,7 @@ import '../pages/addons.dart';
 
 // ---- MAJOR ---
 // Dedicated Widget for Laya Kernel Tuner Card
+// --- LayaKernelTunerCard
 class LayaKernelTunerCard extends ConsumerWidget {
   final VoidCallback onTap;
   final VoidCallback onAction;
@@ -41,6 +42,7 @@ class LayaKernelTunerCard extends ConsumerWidget {
     required this.onBootChanged,
   });
 
+  // --- Configuration
   static const config = AddonConfig(
     id: "laya-kernel-tuner",
     name: "Laya Kernel Tuner",
@@ -63,6 +65,8 @@ class LayaKernelTunerCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // --- Sub
+    // State Management
     final moduleState = ref.watch(moduleStateProvider);
 
     final isRunning = moduleState.isKernelTunerRunning;
@@ -71,6 +75,8 @@ class LayaKernelTunerCard extends ConsumerWidget {
     final pid = moduleState.ktPid;
     final isProcessing = moduleState.processingAddons[config.id] ?? false;
 
+    // --- Sub
+    // Card Rendering
     return AddonCard(
       config: config,
       isRunning: isRunning,

@@ -27,6 +27,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/addons_provider.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/toast.dart';
+import 'details.dart';
 
 // ---- MAJOR ---
 // Addon Detailed Description Page
@@ -244,7 +245,7 @@ class AddonDetailPage extends ConsumerWidget {
                         const SizedBox(height: 32),
 
                         // Sub Detail: Status Dashboard Card
-                        _StatusCard(
+                        StatusCard(
                           isRunning: isRunning,
                           pid: pid,
                           isModuleMode: isModuleMode,
@@ -256,7 +257,7 @@ class AddonDetailPage extends ConsumerWidget {
                         const SizedBox(height: 16),
 
                         // Sub Detail: Boot Persistence Setting
-                        _BootSettingCard(
+                        BootSettingCard(
                           config: config,
                           theme: theme,
                           isDarkMode: isDarkMode,
@@ -266,7 +267,7 @@ class AddonDetailPage extends ConsumerWidget {
                         const SizedBox(height: 32),
 
                         // Sub Detail: Description Area
-                        const _SectionTitle(title: "ABOUT"),
+                        const SectionTitle(title: "ABOUT"),
                         const SizedBox(height: 12),
                         Text(
                           config.longDescription,
@@ -280,15 +281,15 @@ class AddonDetailPage extends ConsumerWidget {
                         const SizedBox(height: 32),
 
                         // Sub Detail: Feature Checklist
-                        const _SectionTitle(title: "FEATURES"),
+                        const SectionTitle(title: "FEATURES"),
                         const SizedBox(height: 16),
                         ...config.features
-                            .map((f) => _FeatureItem(feature: f, theme: theme)),
+                            .map((f) => FeatureItem(feature: f, theme: theme)),
 
                         const SizedBox(height: 32),
 
                         // Sub Detail: Developer Branding/Credits
-                        _CreditCard(
+                        CreditCard(
                           author: config.author,
                           license: config.license,
                           theme: theme,
@@ -353,7 +354,7 @@ class AddonDetailPage extends ConsumerWidget {
                     // Detail: Primary Service Controller
                     Expanded(
                       flex: 3,
-                      child: _AddonActionButton(
+                      child: AddonActionButton(
                         label: isRunning ? "STOP SERVICE" : "RUN SERVICE",
                         onPressed: isProcessing ? null : onAction,
                         isRunning: isRunning,
@@ -376,7 +377,11 @@ class AddonDetailPage extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => _LicenseViewer(name: name, filePath: path),
+        builder: (context) => DetailsPage(
+          title: "$name License",
+          assetPath: path,
+          icon: LucideIcons.scale,
+        ),
       ),
     );
   }
@@ -385,7 +390,7 @@ class AddonDetailPage extends ConsumerWidget {
 // ---- SUPPORTING ---
 
 // Service Runtime Status Display Card
-class _StatusCard extends StatelessWidget {
+class StatusCard extends StatelessWidget {
   final bool isRunning;
   final int? pid;
   final bool isModuleMode;
@@ -393,7 +398,8 @@ class _StatusCard extends StatelessWidget {
   final bool isDarkMode;
   final WidgetRef ref;
 
-  const _StatusCard({
+  const StatusCard({
+    super.key,
     required this.isRunning,
     this.pid,
     required this.isModuleMode,
@@ -464,13 +470,14 @@ class _StatusCard extends StatelessWidget {
 }
 
 // Module Boot Survival Toggle Card
-class _BootSettingCard extends ConsumerWidget {
+class BootSettingCard extends ConsumerWidget {
   final dynamic config;
   final ThemeData theme;
   final bool isDarkMode;
   final WidgetRef ref;
 
-  const _BootSettingCard({
+  const BootSettingCard({
+    super.key,
     required this.config,
     required this.theme,
     required this.isDarkMode,
@@ -550,9 +557,9 @@ class _BootSettingCard extends ConsumerWidget {
 }
 
 // Minimalistic Section Label
-class _SectionTitle extends StatelessWidget {
+class SectionTitle extends StatelessWidget {
   final String title;
-  const _SectionTitle({required this.title});
+  const SectionTitle({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -569,10 +576,10 @@ class _SectionTitle extends StatelessWidget {
 }
 
 // Individual Feature Line Item
-class _FeatureItem extends StatelessWidget {
+class FeatureItem extends StatelessWidget {
   final String feature;
   final ThemeData theme;
-  const _FeatureItem({required this.feature, required this.theme});
+  const FeatureItem({super.key, required this.feature, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -593,7 +600,7 @@ class _FeatureItem extends StatelessWidget {
 }
 
 // Author Information & Legal Card
-class _CreditCard extends StatelessWidget {
+class CreditCard extends StatelessWidget {
   final String author;
   final String license;
   final ThemeData theme;
@@ -601,7 +608,8 @@ class _CreditCard extends StatelessWidget {
   final WidgetRef ref;
   final VoidCallback onLicenseTap;
 
-  const _CreditCard({
+  const CreditCard({
+    super.key,
     required this.author,
     required this.license,
     required this.theme,
@@ -666,14 +674,15 @@ class _CreditCard extends StatelessWidget {
 }
 
 // Specialized Service Execution Button
-class _AddonActionButton extends StatelessWidget {
+class AddonActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isRunning;
   final bool isProcessing;
   final ThemeData theme;
 
-  const _AddonActionButton({
+  const AddonActionButton({
+    super.key,
     required this.label,
     this.onPressed,
     required this.isRunning,
@@ -722,41 +731,6 @@ class _AddonActionButton extends StatelessWidget {
                   letterSpacing: 1.5,
                 ),
               ),
-      ),
-    );
-  }
-}
-
-// Integrated License File Preview Pane
-class _LicenseViewer extends StatelessWidget {
-  final String name;
-  final String filePath;
-
-  const _LicenseViewer({required this.name, required this.filePath});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("$name License"),
-        backgroundColor: Colors.transparent,
-      ),
-      body: FutureBuilder<String>(
-        future: rootBundle
-            .loadString(filePath)
-            .catchError((e) => "License file not found: $filePath"),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              snapshot.data ?? "No content",
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
-          );
-        },
       ),
     );
   }

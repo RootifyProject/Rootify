@@ -72,10 +72,10 @@ class AddonsPage extends ConsumerStatefulWidget {
   const AddonsPage({super.key});
 
   @override
-  ConsumerState<AddonsPage> createState() => _AddonsPageState();
+  ConsumerState<AddonsPage> createState() => AddonsPageState();
 }
 
-class _AddonsPageState extends ConsumerState<AddonsPage> {
+class AddonsPageState extends ConsumerState<AddonsPage> {
   // --- Lifecycle
   @override
   void initState() {

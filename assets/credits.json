@@ -1,77 +1,135 @@
 [
   {
-    "name": "Laynsb (Laya)",
+    "name": "Laynsb",
     "tgid": "1274879104",
+    "type": "special thanks",
+    "description_type": "addon",
     "description": "Creator of Laya Battery Monitor & Kernel Tuner addons. Highly optimized binary for CPU and battery efficiency."
   },
   {
     "name": "Kaminarich",
     "tgid": "5647101395",
+    "type": "special thanks",
+    "description_type": "teacher",
     "description": "The master who taught me everything about Android optimization and system internals. A true mentor in this journey."
   },
   {
     "name": "Jvaswb",
     "tgid": "6852986928",
+    "type": "credits",
+    "description_type": "tester",
     "description": "Internal Tester & Core Supporter. Provided invaluable feedback and constant encouragement throughout the development."
   },
   {
     "name": "Opeknew",
     "tgid": "8012212152",
+    "type": "credits",
+    "description_type": "tester",
     "description": "Reliable Internal Tester. Helped identify critical bugs and ensured the app remains stable across different scenarios."
   },
   {
-    "name": "Zexshia (Azenith)",
+    "name": "Zexshia",
     "tgid": "5299799715",
+    "type": "credits",
+    "description_type": ["inspiration", "code"],
     "description": "Inspired by Azenith. A constant source of inspiration and fresh ideas for the visual and functional direction of the app."
   },
   {
-    "name": "Rianixia (Xiaa Toolkit)",
+    "name": "Rianixia",
     "tgid": "5916620429",
+    "type": "credits",
+    "description_type": "inspiration",
     "description": "Creator of Rianixia Toolkit. His groundbreaking work on Xiaa Toolkit served as a major inspiration for Rootify's core modules."
   },
   {
     "name": "Gray Ravens Leader",
     "tgid": "7937858374",
+    "type": "special thanks",
+    "description_type": "motivation",
     "description": "The primary motivation and driving force behind this project, inspiring the goal of providing valuable tools to the community."
   },
   {
     "name": "Ray",
     "tgid": "5946001420",
+    "type": "credits",
+    "description_type": "tester",
     "description": "An exceptional internal tester whose precise and structured feedback was essential for refining application stability."
   },
   {
     "name": "Null",
     "tgid": "8279481330",
+    "type": "credits",
+    "description_type": "tester",
     "description": "A diligent internal tester who excelled at discovering critical bugs and improving overall system reliability."
   },
   {
     "name": "Kaze",
     "tgid": "6499966648",
+    "type": "credits",
+    "description_type": ["friend", "tester"],
     "description": "Friend, bug finder, and my personal cheerleader. Basically the reason this project didn't get abandoned halfway through."
   },
   {
     "name": "Dreen",
     "tgid": "6775478310",
+    "type": "credits",
+    "description_type": "tester",
     "description": "Tester who made sure everything actually works. Found bugs in places I didn't even know existed."
   },
   {
-    "name": "Sipur (Banner Artist)",
+    "name": "Sipur",
     "tgid": "2010320452",
+    "type": "special thanks",
+    "description_type": "banner artist",
     "description": "The artistic genius behind Rootify's gorgeous banners. Made the app look as good as it performs."
   },
   {
-    "name": "Kanagawa Yamada (Project Raco)",
+    "name": "Kanagawa Yamada",
     "tgid": "7716938470",
+    "type": "special thanks",
+    "description_type": ["teacher", "inspiration"],
     "description": "Owner of KLC. My go-to person when I hit a wall. Also inspired by his Project Raco work."
   },
   {
-    "name": "Azami (MTK Vest)",
+    "name": "Azami",
     "tgid": "1079627817",
+    "type": "special thanks",
+    "description_type": ["inspiration", "code"],
     "description": "A true senior. Helped me understand shell scripting and provided solid code references. Greatly appreciated."
   },
   {
     "name": "Riprog",
     "tgid": "1886964336",
+    "type": "credits",
+    "description_type": "Master",
     "description": "The addon master. Respect to the OG. His work on addons set the standard I aspired to match."
+  },
+  {
+    "name": "TRAVEL - Transsion Developments",
+    "tgid": "none",
+    "type": "special thanks",
+    "description_type": "motivation",
+    "description": "The birthplace of ideas and a hub for brilliant developers who guided me through complex challenges. A heartfelt thank you to all members for their unwavering support."
+  },
+  {
+    "name": "TranCore Developments",
+    "tgid": "none",
+    "type": "special thanks",
+    "description_type": "motivation",
+    "description": "The birthplace of ideas and a hub for brilliant developers who guided me through complex challenges. A heartfelt thank you to all members for their unwavering support."
+  },
+  {
+    "name": "Gray Ravens",
+    "tgid": "none",
+    "type": "special thanks",
+    "description_type": "motivation",
+    "description": "The birthplace of ideas and a hub for brilliant developers who guided me through complex challenges. A heartfelt thank you to all members for their unwavering support."
+  },
+  {
+    "name": "Millenium Team's",
+    "tgid": "none",
+    "type": "special thanks",
+    "description_type": "motivation",
+    "description": "The birthplace of ideas and a hub for brilliant developers who guided me through complex challenges. A heartfelt thank you to all members for their unwavering support."
   }
 ]
