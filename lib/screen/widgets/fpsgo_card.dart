@@ -25,7 +25,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 // ---- LOCAL ---
 import '../../providers/fpsgo_provider.dart';
 import '../../widgets/cards.dart';
-import '../pages/fpsgo.dart';
+import '../pages-sub/fpsgo.dart';
 
 // ---- MAJOR ---
 // Dashboard Entry Card for FPSGO Management

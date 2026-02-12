@@ -25,7 +25,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 // ---- LOCAL ---
 import '../../providers/cpu_provider.dart';
 import '../../widgets/cards.dart';
-import '../pages/cpu_manager.dart';
+import '../pages-sub/cpu_manager.dart';
 
 // ---- MAJOR ---
 // Dashboard Entry Card for CPU Management

@@ -30,8 +30,10 @@ import '../../widgets/toast.dart';
 import '../../shell/shell_layakertun.dart';
 import '../../shell/shell_layabattmon.dart';
 import '../../utils/app_logger.dart';
-import '../pages/addon_detail.dart';
+import '../pages-sub/addon_detail.dart';
 import '../overlays/log.dart';
+import '../widgets/laya_kertun.dart';
+import '../widgets/laya_battmon.dart';
 
 // ---- MAJOR ---
 // Static Metadata for Supported Addon Services
@@ -61,46 +63,8 @@ class AddonConfig {
   });
 }
 
-const List<AddonConfig> _addons = [
-  AddonConfig(
-    id: "laya-kernel-tuner",
-    name: "Laya Kernel Tuner",
-    description:
-        "Smart kernel optimizer that auto-tunes your device for battery life without breaking performance.",
-    longDescription:
-        "This runs 4 profiles automatically: super battery saver when screen's off, balanced mode during normal use, max performance when you need it, and gaming mode for demanding apps. It watches what you're doing and adjusts kernel parameters on the fly—no user babysitting needed. Works silently in the background, barely uses any CPU, and can give you 10-20% better battery just sitting idle. Built for 64-bit Android 11+ with Kernel 4.14+.",
-    version: "6.0-STABLE",
-    author: "Laya",
-    license: "GPL-3.0",
-    licensePath: "assets/license/LICENSE-LayaKernelTuner",
-    icon: LucideIcons.cpu,
-    features: [
-      "Dynamic CPU Scaling",
-      "Kernel Parameter Optimization",
-      "Process Priority Management",
-      "Thermal Governor Tuning"
-    ],
-  ),
-  AddonConfig(
-    id: "laya-battery-monitor",
-    name: "Laya Battery Monitor",
-    description:
-        "Lightweight daemon that throttles CPU when screen's off to save battery.",
-    longDescription:
-        "Written in Rust for speed and efficiency. When your screen turns off, it automatically pulls back CPU power and switches to power-saver mode. Instead of constantly polling (which drains battery), it uses smart event hooks to react instantly. Keeps temps chill, especially when you're hotspotting. Basically invisible—no UI, no notifications, just works. Compatible everywhere.",
-    version: "4.5-STABLE",
-    author: "Laya",
-    license: "MIT",
-    licensePath: "assets/license/LICENSE-LayaBatteryMonitor",
-    icon: LucideIcons.batteryCharging,
-    features: [
-      "Smart CPU Policy Handling",
-      "Event-Driven Power Saving",
-      "Microsecond-Class Efficiency",
-      "No System Bloat"
-    ],
-  ),
-];
+const AddonConfig layaKertunConfig = LayaKernelTunerCard.config;
+const AddonConfig layaBattmonConfig = LayaBatteryMonitorCard.config;
 
 // ---- MAJOR ---
 // Primary Interface for External Service Management
@@ -124,9 +88,6 @@ class _AddonsPageState extends ConsumerState<AddonsPage> {
   // --- UI Builder
   @override
   Widget build(BuildContext context) {
-    // --- Configuration
-    final moduleState = ref.watch(moduleStateProvider);
-
     // --- Component Assembly
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -136,92 +97,86 @@ class _AddonsPageState extends ConsumerState<AddonsPage> {
         padding: EdgeInsets.fromLTRB(
             16, MediaQuery.of(context).padding.top + 80, 16, 120),
         child: Column(
-          children: _addons.asMap().entries.map((entry) {
-            final config = entry.value;
-
-            // --- Sub
-            // State Extraction Logic
-            final isRunning = config.id == "laya-kernel-tuner"
-                ? moduleState.isKernelTunerRunning
-                : moduleState.isBatteryMonitorRunning;
-            final hasModule = config.id == "laya-kernel-tuner"
-                ? moduleState.hasKernelTunerModule
-                : moduleState.hasBatteryMonitorModule;
-            final isBootEnabled = config.id == "laya-kernel-tuner"
-                ? moduleState.isKTBootEnabled
-                : moduleState.isBMBootEnabled;
-            final pid = config.id == "laya-kernel-tuner"
-                ? moduleState.ktPid
-                : moduleState.bmPid;
-            final isProcessing =
-                moduleState.processingAddons[config.id] ?? false;
-
-            // --- Sub
-            // Individual Card Container
-            return Column(
-              children: [
-                _AddonCard(
-                  config: config,
-                  isRunning: isRunning,
-                  pid: pid,
-                  isProcessing: isProcessing,
-                  isModuleMode: hasModule && isRunning,
-                  isBootEnabled: isBootEnabled,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddonDetailPage(
-                          config: config,
-                          isRunning: isRunning,
-                          pid: pid,
-                          isProcessing: isProcessing,
-                          isModuleMode: hasModule && isRunning,
-                          onAction: () => isRunning
-                              ? _stopBinary(config.id)
-                              : _installAndRun(config.id),
-                          onLog: () => _showLog(config.id),
-                        ),
-                      ),
-                    ).then((_) =>
-                        ref.read(moduleStateProvider.notifier).refresh());
-                  },
-                  onAction: () => isRunning
-                      ? _stopBinary(config.id)
-                      : _installAndRun(config.id),
-                  onLog: () => _showLog(config.id),
-                  onBootChanged: (val) async {
-                    try {
-                      if (config.id == "laya-kernel-tuner") {
-                        await ref
-                            .read(moduleStateProvider.notifier)
-                            .toggleKTBoot(val);
-                      } else {
-                        await ref
-                            .read(moduleStateProvider.notifier)
-                            .toggleBMBoot(val);
-                      }
-                      if (context.mounted) {
-                        RootifyToast.success(context,
-                            "Apply on Boot ${val ? 'enabled' : 'disabled'} for ${config.name}");
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        RootifyToast.error(context,
-                            e.toString().replaceFirst('Exception: ', ''));
-                      }
-                    }
-                  },
-                ),
-              ],
-            );
-          }).toList(),
+          children: [
+            LayaKernelTunerCard(
+              onTap: () => _navigateToDetail(context, layaKertunConfig),
+              onAction: () => _handleAction(layaKertunConfig.id),
+              onLog: () => _showLog(layaKertunConfig.id),
+              onBootChanged: (val) => _handleBootChange(layaKertunConfig, val),
+            ),
+            LayaBatteryMonitorCard(
+              onTap: () => _navigateToDetail(context, layaBattmonConfig),
+              onAction: () => _handleAction(layaBattmonConfig.id),
+              onLog: () => _showLog(layaBattmonConfig.id),
+              onBootChanged: (val) => _handleBootChange(layaBattmonConfig, val),
+            ),
+          ],
         ),
       ),
     );
   }
 
   // ---- LOGIC HANDLERS ---
+
+  void _navigateToDetail(BuildContext context, AddonConfig config) {
+    final moduleState = ref.read(moduleStateProvider);
+    final isRunning = config.id == "laya-kernel-tuner"
+        ? moduleState.isKernelTunerRunning
+        : moduleState.isBatteryMonitorRunning;
+    final hasModule = config.id == "laya-kernel-tuner"
+        ? moduleState.hasKernelTunerModule
+        : moduleState.hasBatteryMonitorModule;
+    final pid = config.id == "laya-kernel-tuner"
+        ? moduleState.ktPid
+        : moduleState.bmPid;
+    final isProcessing = moduleState.processingAddons[config.id] ?? false;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddonDetailPage(
+          config: config,
+          isRunning: isRunning,
+          pid: pid,
+          isProcessing: isProcessing,
+          isModuleMode: hasModule && isRunning,
+          onAction: () => _handleAction(config.id),
+          onLog: () => _showLog(config.id),
+        ),
+      ),
+    ).then((_) => ref.read(moduleStateProvider.notifier).refresh());
+  }
+
+  void _handleAction(String addonId) {
+    final isRunning = addonId == "laya-kernel-tuner"
+        ? ref.read(moduleStateProvider).isKernelTunerRunning
+        : ref.read(moduleStateProvider).isBatteryMonitorRunning;
+
+    if (isRunning) {
+      _stopBinary(addonId);
+    } else {
+      _installAndRun(addonId);
+    }
+  }
+
+  Future<void> _handleBootChange(AddonConfig config, bool val) async {
+    try {
+      if (config.id == "laya-kernel-tuner") {
+        await ref.read(moduleStateProvider.notifier).toggleKTBoot(val);
+      } else {
+        await ref.read(moduleStateProvider.notifier).toggleBMBoot(val);
+      }
+      if (mounted) {
+        RootifyToast.success(context,
+            "Apply on Boot ${val ? 'enabled' : 'disabled'} for ${config.name}");
+      }
+    } catch (e) {
+      if (mounted) {
+        RootifyToast.error(
+            context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
 
   // --- Sub
   // Service Initialization Flow
@@ -331,7 +286,7 @@ class _AddonsPageState extends ConsumerState<AddonsPage> {
 
 // ---- MAJOR ---
 // Visual Card for Addon Status & Controls
-class _AddonCard extends StatelessWidget {
+class AddonCard extends StatelessWidget {
   final AddonConfig config;
   final bool isRunning;
   final int? pid;
@@ -343,7 +298,8 @@ class _AddonCard extends StatelessWidget {
   final VoidCallback onLog;
   final Function(bool) onBootChanged;
 
-  const _AddonCard({
+  const AddonCard({
+    super.key,
     required this.config,
     required this.isRunning,
     this.pid,
@@ -441,7 +397,7 @@ class _AddonCard extends StatelessWidget {
               if (!isModuleMode)
                 Expanded(
                   flex: 2,
-                  child: _AddonActionButton(
+                  child: AddonActionButton(
                     label: isRunning ? "STOP SERVICE" : "RUN SERVICE",
                     onPressed: isProcessing ? null : onAction,
                     isRunning: isRunning,
@@ -458,17 +414,19 @@ class _AddonCard extends StatelessWidget {
 
 // ---- MAJOR ---
 // Custom Styled Button for Binary State Changes
-class _AddonActionButton extends StatelessWidget {
+class AddonActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isRunning;
   final ThemeData theme;
 
-  const _AddonActionButton(
-      {required this.label,
-      this.onPressed,
-      required this.isRunning,
-      required this.theme});
+  const AddonActionButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    required this.isRunning,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -25,7 +25,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 // ---- LOCAL ---
 import '../../providers/cpu_provider.dart';
-import '../../screen/statusbar/sb_cpumanager.dart';
+import '../statusbar/sb_cpumanager.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/toast.dart';
 import '../widgets/cluster.dart';

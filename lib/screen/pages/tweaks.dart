@@ -33,7 +33,7 @@ import '../../widgets/toast.dart';
 import '../widgets/cpumanager.dart';
 import '../widgets/memorymanager.dart';
 import '../widgets/fpsgo_card.dart';
-import 'memory_manager.dart';
+import '../pages-sub/memory_manager.dart';
 
 // ---- MAJOR ---
 // Unified Control Dashboard for Performance & Kernel Fine-Tuning

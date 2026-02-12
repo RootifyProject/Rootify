@@ -24,8 +24,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 // ---- LOCAL ---
-import 'rootifylog.dart';
-import 'fps_meter.dart';
+import '../pages-sub/rootifylog.dart';
+import '../pages-sub/fps_meter.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/toast.dart';
 

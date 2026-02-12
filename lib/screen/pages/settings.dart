@@ -25,8 +25,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 // ---- LOCAL ---
 import '../../widgets/cards.dart';
-import 'about_app.dart';
-import 'theme_settings.dart';
+import '../pages-sub/about_app.dart';
+import '../pages-sub/theme_settings.dart';
 
 // ---- MAJOR ---
 // Global Application Settings & Technical Configuration
