@@ -39,6 +39,7 @@ class BatterySection extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return RootifyCard(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       title: "Battery",
       icon: LucideIcons.battery,
       child: _BatteryRealtimeInfo(theme: theme, ref: ref),

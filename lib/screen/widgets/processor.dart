@@ -39,6 +39,7 @@ class ProcessorSection extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return RootifyCard(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       title: "Processor",
       icon: LucideIcons.cpu,
       child: _ProcessorRealtimeInfo(theme: theme, ref: ref),

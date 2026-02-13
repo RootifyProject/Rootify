@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/png/icon.png" width="120" alt="Rootify Logo">
+  <img src="assets/icon/icon.png" width="120" alt="Rootify Logo">
 </p>
 
 <h1 align="center">Rootify</h1>

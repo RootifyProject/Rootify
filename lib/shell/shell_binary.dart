@@ -29,8 +29,8 @@ class BinaryShellService extends BaseShellService {
 
   // --- Sub
   // Constants & Paths
-  static const String binPath = "/data/data/com.aby.rootify/files/bin";
-  static const String logPath = "/data/data/com.aby.rootify/files/logs";
+  static const String binPath = "/data/adb/modules/rootify/bin";
+  static const String logPath = "/data/adb/modules/rootify/logs";
 
   // --- Sub
   // Process Lifecycle

@@ -25,7 +25,8 @@ import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import '../../services/system_monitor.dart';
 
 // ---- MAJOR ---
-// Main Overlay Component
+// Primary Overlay Component for Real-time FPS Monitoring
+// --- FpsMeterOverlay
 class FpsMeterOverlay extends ConsumerStatefulWidget {
   const FpsMeterOverlay({super.key});
 
@@ -34,13 +35,16 @@ class FpsMeterOverlay extends ConsumerStatefulWidget {
 }
 
 class _FpsMeterOverlayState extends ConsumerState<FpsMeterOverlay> {
-  // --- Fields
+  // --- Sub
+  // Overlay Lock State
   bool _isLocked = false;
 
-  // --- Lifecycle
+  // --- Sub
+  // Lifecycle Management
   @override
   void initState() {
     super.initState();
+    // Detail: Listen for lock status updates from the main app
     FlutterOverlayWindow.overlayListener.listen((data) {
       if (data is Map && data.containsKey('locked')) {
         final locked = data['locked'] == true;
@@ -48,7 +52,7 @@ class _FpsMeterOverlayState extends ConsumerState<FpsMeterOverlay> {
           _isLocked = locked;
         });
 
-        // Jump logic
+        // Detail: Handle overlay jump based on lock state
         if (locked) {
           FlutterOverlayWindow.moveOverlay(const OverlayPosition(0, 0));
         } else {
@@ -58,15 +62,16 @@ class _FpsMeterOverlayState extends ConsumerState<FpsMeterOverlay> {
     });
   }
 
+  // --- Sub
+  // UI Builder
   @override
   Widget build(BuildContext context) {
-    // FIX: Hapus FittedBox & Center.
-    // Struktur: Directionality -> GestureDetector -> Container (Pill).
-    // Ini bikin widgetnya cuma segede isinya (shrink wrap).
+    // Detail: Maintain LTR directionality for overlay content
+    // Detail: Implement pan gestures for manual positioning
     return Directionality(
       textDirection: TextDirection.ltr,
       child: GestureDetector(
-        behavior: HitTestBehavior.opaque, // Cuma nangkep touch di visual widget
+        behavior: HitTestBehavior.opaque,
         onPanUpdate: (details) {
           if (!_isLocked) {
             FlutterOverlayWindow.moveOverlay(
@@ -77,14 +82,16 @@ class _FpsMeterOverlayState extends ConsumerState<FpsMeterOverlay> {
             );
           }
         },
-        // Widget Pill langsung di sini, tanpa wrapper layout yang aneh-aneh
+        // Detail: Render the visual FPS pill
         child: _FpsPill(isLocked: _isLocked),
       ),
     );
   }
 }
 
-// ---- UI COMPONENT ---
+// ---- MAJOR ---
+// Stylized Pill Widget for FPS Display
+// --- FpsPill
 class _FpsPill extends ConsumerWidget {
   final bool isLocked;
   const _FpsPill({this.isLocked = false});
@@ -94,6 +101,8 @@ class _FpsPill extends ConsumerWidget {
     final stats = ref.watch(systemMonitorProvider).asData?.value;
     final double fps = stats?.fps ?? 0.0;
 
+    // --- Sub
+    // Color thresholds for performance feedback
     Color statusColor = const Color(0xFF00E676);
     if (fps < 30) {
       statusColor = const Color(0xFFFF1744);
@@ -101,22 +110,22 @@ class _FpsPill extends ConsumerWidget {
       statusColor = const Color(0xFFFF9100);
     }
 
-    // Gunakan Material disini HANYA untuk styling, bukan layouting
+    // --- Sub
+    // Visual Assembly
     return Material(
       color: Colors.transparent,
       type: MaterialType.transparency,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-            color: const Color(
-                0xCC000000), // Sedikit lebih gelap biar solid (0xCC)
+            color: const Color(0xCC000000),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: statusColor.withValues(alpha: 0.3),
               width: 0.5,
             ),
             boxShadow: [
-              // Opsional: Shadow tipis biar makin keliatan "melayang" pisah dari background
+              // Detail: Subtle shadow for depth separation
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 4,
@@ -124,13 +133,13 @@ class _FpsPill extends ConsumerWidget {
               )
             ]),
         child: Row(
-          mainAxisSize: MainAxisSize.min, // PENTING: Biar gak melar
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               "FPS",
               style: TextStyle(
-                fontSize: 10, // Sedikit digedein biar enak baca
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
                 color: Colors.white.withValues(alpha: 0.7),
               ),

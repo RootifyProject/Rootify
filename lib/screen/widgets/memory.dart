@@ -38,6 +38,7 @@ class MemorySection extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return RootifyCard(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       title: "Memory",
       icon: LucideIcons.database,
       child: _MemoryRealtimeInfo(theme: theme, ref: ref),

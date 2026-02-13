@@ -21,9 +21,9 @@ import 'package:flutter/services.dart';
 // ---- EXTERNAL ---
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 // ---- LOCAL ---
+import '../../theme/rootify_background_provider.dart';
 import '../../providers/cpu_provider.dart';
 import '../statusbar/sb_cpumanager.dart';
 import '../../widgets/cards.dart';
@@ -51,169 +51,102 @@ class _CpuManagerPageState extends ConsumerState<CpuManagerPage> {
     // --- Sub
     // Theme & Context
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // --- Sub
-          // 1. Mirrored Dynamic Mesh Background
-          Positioned.fill(
-            child: AnimatedContainer(
-              duration: const Duration(seconds: 1),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colorScheme.surface,
-                    colorScheme.surfaceContainer,
-                    colorScheme.surfaceContainerHigh,
-                  ],
-                  stops: const [0.0, 0.4, 1.0],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Detail: Primary Glow
-                  Positioned(
-                    top: -120,
-                    left: -120,
-                    child: Container(
-                      width: 450,
-                      height: 450,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            colorScheme.primary.withValues(alpha: 0.15),
-                            colorScheme.primary.withValues(alpha: 0.0),
-                          ],
+      body: RootifySubBackground(
+        child: Stack(
+          children: [
+            // --- Sub
+            // 2. Main Scrolling Content
+            CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // Detail: Header Space
+                SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
+
+                // Detail: Header Row (Text + Apply on Boot)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Detail: Page Title
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("CPU",
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2.0,
+                                      height: 1.0,
+                                      color: theme.colorScheme.primary)),
+                              Text("POLICIES",
+                                  style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.5,
+                                      color: theme.colorScheme.onSurface)),
+                            ],
+                          ),
                         ),
-                      ),
-                    ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                        begin: const Offset(30, -30),
-                        end: const Offset(-30, 30),
-                        duration: 12.seconds),
-                  ),
-                  // Detail: Secondary Glow
-                  Positioned(
-                    bottom: -80,
-                    right: -80,
-                    child: Container(
-                      width: 350,
-                      height: 350,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            colorScheme.secondary.withValues(alpha: 0.1),
-                            colorScheme.secondary.withValues(alpha: 0.0),
-                          ],
+
+                        // Detail: Apply on Boot Toggle (Fixed Width)
+                        SizedBox(
+                          width: 215,
+                          child: _buildApplyOnBootToggle(context, ref),
                         ),
-                      ),
-                    ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                        begin: const Offset(-30, 30),
-                        end: const Offset(30, -30),
-                        duration: 10.seconds),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // --- Sub
-          // 2. Main Scrolling Content
-          CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Detail: Header Space
-              SliverToBoxAdapter(
-                  child: SizedBox(
-                      height: MediaQuery.of(context).padding.top + 80)),
-
-              // Detail: Header Row (Text + Apply on Boot)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Detail: Page Title
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("CPU",
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 2.0,
-                                    height: 1.0,
-                                    color: theme.colorScheme.primary)),
-                            Text("POLICIES",
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 2.0,
-                                    height: 1.0,
-                                    color: theme.colorScheme.primary)),
-                          ],
-                        ),
-                      ),
-                      // Detail: Apply on Boot Toggle (Fixed Width)
-                      SizedBox(
-                        width: 215,
-                        child: _buildApplyOnBootToggle(context, ref),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Detail: Content Gap (Matches Tweaks 24px total)
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-              // Detail: Dynamic Cluster Control Cards
-              Consumer(
-                builder: (context, ref, child) {
-                  final state = ref.watch(cpuStateProvider);
-                  if (state.isLoading) {
-                    return const SliverToBoxAdapter(
-                        child: Center(child: CircularProgressIndicator()));
-                  }
-
-                  return SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          return ClusterControlCard(
-                              policy: state.policies[index]);
-                        },
-                        childCount: state.policies.length,
-                      ),
+                      ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
-            ],
-          ),
+                // Detail: Content Gap (Matches Tweaks 24px total)
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-          // --- Sub
-          // 3. Floating Status Bar
-          Positioned(
-            top: topPadding + 10,
-            left: 0,
-            right: 0,
-            child: const CpuManagerStatusBar(),
-          ),
-        ],
+                // Detail: Dynamic Cluster Control Cards
+                Consumer(
+                  builder: (context, ref, child) {
+                    final state = ref.watch(cpuStateProvider);
+                    if (state.isLoading) {
+                      return const SliverToBoxAdapter(
+                          child: Center(child: CircularProgressIndicator()));
+                    }
+
+                    return SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            return ClusterControlCard(
+                                policy: state.policies[index]);
+                          },
+                          childCount: state.policies.length,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              ],
+            ),
+
+            // --- Sub
+            // 3. Floating Status Bar
+            Positioned(
+              top: topPadding + 10,
+              left: 0,
+              right: 0,
+              child: const CpuManagerStatusBar(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -227,7 +160,8 @@ class _CpuManagerPageState extends ConsumerState<CpuManagerPage> {
     final state = ref.watch(cpuStateProvider);
 
     return RootifySubCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

@@ -17,11 +17,11 @@
 // ---- SYSTEM ---
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 // ---- EXTERNAL ---
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../../theme/rootify_background_provider.dart';
 
 // ---- LOCAL ---
 import '../../providers/addons_provider.dart';
@@ -30,8 +30,9 @@ import '../../widgets/toast.dart';
 import '../../shell/shell_layakertun.dart';
 import '../../shell/shell_layabattmon.dart';
 import '../../utils/app_logger.dart';
+import '../../main.dart';
 import '../pages-sub/addon_detail.dart';
-import '../overlays/log.dart';
+import '../overlays/log_dialog.dart';
 import '../widgets/laya_kertun.dart';
 import '../widgets/laya_battmon.dart';
 
@@ -91,26 +92,30 @@ class AddonsPageState extends ConsumerState<AddonsPage> {
     // --- Component Assembly
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SingleChildScrollView(
-        key: const PageStorageKey('addons_page_scroll'),
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-            16, MediaQuery.of(context).padding.top + 80, 16, 120),
-        child: Column(
-          children: [
-            LayaKernelTunerCard(
-              onTap: () => _navigateToDetail(context, layaKertunConfig),
-              onAction: () => _handleAction(layaKertunConfig.id),
-              onLog: () => _showLog(layaKertunConfig.id),
-              onBootChanged: (val) => _handleBootChange(layaKertunConfig, val),
-            ),
-            LayaBatteryMonitorCard(
-              onTap: () => _navigateToDetail(context, layaBattmonConfig),
-              onAction: () => _handleAction(layaBattmonConfig.id),
-              onLog: () => _showLog(layaBattmonConfig.id),
-              onBootChanged: (val) => _handleBootChange(layaBattmonConfig, val),
-            ),
-          ],
+      body: RootifyMainBackground(
+        child: SingleChildScrollView(
+          key: const PageStorageKey('addons_page_scroll'),
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+              16, MediaQuery.of(context).padding.top + 80, 16, 120),
+          child: Column(
+            children: [
+              LayaKernelTunerCard(
+                onTap: () => _navigateToDetail(context, layaKertunConfig),
+                onAction: () => _handleAction(layaKertunConfig.id),
+                onLog: () => _showLog(layaKertunConfig.id),
+                onBootChanged: (val) =>
+                    _handleBootChange(layaKertunConfig, val),
+              ),
+              LayaBatteryMonitorCard(
+                onTap: () => _navigateToDetail(context, layaBattmonConfig),
+                onAction: () => _handleAction(layaBattmonConfig.id),
+                onLog: () => _showLog(layaBattmonConfig.id),
+                onBootChanged: (val) =>
+                    _handleBootChange(layaBattmonConfig, val),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -162,9 +167,13 @@ class AddonsPageState extends ConsumerState<AddonsPage> {
   Future<void> _handleBootChange(AddonConfig config, bool val) async {
     try {
       if (config.id == "laya-kernel-tuner") {
-        await ref.read(moduleStateProvider.notifier).toggleKTBoot(val);
+        await globalContainer
+            .read(moduleStateProvider.notifier)
+            .toggleKTBoot(val);
       } else {
-        await ref.read(moduleStateProvider.notifier).toggleBMBoot(val);
+        await globalContainer
+            .read(moduleStateProvider.notifier)
+            .toggleBMBoot(val);
       }
       if (mounted) {
         RootifyToast.success(context,
@@ -182,30 +191,33 @@ class AddonsPageState extends ConsumerState<AddonsPage> {
   // Service Initialization Flow
   Future<void> _installAndRun(String binaryName) async {
     logger.i("AddonsPage: Initializing service -> $binaryName");
-    ref.read(moduleStateProvider.notifier).setProcessing(binaryName, true);
+    globalContainer
+        .read(moduleStateProvider.notifier)
+        .setProcessing(binaryName, true);
 
-    final dismiss = RootifyToast.showLoading(context,
-        "Starting ${binaryName.replaceAll('laya-', '').toUpperCase()}...");
+    final dismiss = mounted
+        ? RootifyToast.showLoading(context,
+            "Starting ${binaryName.replaceAll('laya-', '').toUpperCase()}...")
+        : () {};
 
     try {
-      final binDir = Directory("/data/data/com.aby.rootify/files/bin");
-      if (!await binDir.exists()) await binDir.create(recursive: true);
-
-      final file = File("${binDir.path}/$binaryName");
+      final file = File("/data/data/com.aby.rootify/files/bin/$binaryName");
       if (!await file.exists()) {
-        final data = await rootBundle.load("assets/bin/$binaryName");
-        await file.writeAsBytes(data.buffer.asUint8List());
+        throw Exception("Binary $binaryName missing from internal storage.");
       }
 
       if (binaryName == "laya-kernel-tuner") {
-        await ref.read(layakertunShellProvider).startKernelTuner();
+        await globalContainer.read(layakertunShellProvider).startKernelTuner();
       } else {
-        await ref.read(layabattmonShellProvider).startBatteryMonitor();
+        await globalContainer
+            .read(layabattmonShellProvider)
+            .startBatteryMonitor();
       }
 
-      await ref
+      await globalContainer
           .read(moduleStateProvider.notifier)
           .refresh(retries: 5, checkAddonId: binaryName, expectRunning: true);
+
       dismiss();
       if (mounted) {
         RootifyToast.success(context,
@@ -215,7 +227,9 @@ class AddonsPageState extends ConsumerState<AddonsPage> {
       dismiss();
       if (mounted) RootifyToast.error(context, "Start failed: $e");
     } finally {
-      ref.read(moduleStateProvider.notifier).setProcessing(binaryName, false);
+      globalContainer
+          .read(moduleStateProvider.notifier)
+          .setProcessing(binaryName, false);
     }
   }
 
@@ -223,19 +237,25 @@ class AddonsPageState extends ConsumerState<AddonsPage> {
   // Service Cessation Flow
   Future<void> _stopBinary(String binaryName) async {
     logger.w("AddonsPage: Stopping service -> $binaryName");
-    ref.read(moduleStateProvider.notifier).setProcessing(binaryName, true);
+    globalContainer
+        .read(moduleStateProvider.notifier)
+        .setProcessing(binaryName, true);
 
-    final dismiss = RootifyToast.showLoading(context,
-        "Stopping ${binaryName.replaceAll('laya-', '').toUpperCase()}...");
+    final dismiss = mounted
+        ? RootifyToast.showLoading(context,
+            "Stopping ${binaryName.replaceAll('laya-', '').toUpperCase()}...")
+        : () {};
 
     try {
       if (binaryName == "laya-kernel-tuner") {
-        await ref.read(layakertunShellProvider).stopKernelTuner();
+        await globalContainer.read(layakertunShellProvider).stopKernelTuner();
       } else {
-        await ref.read(layabattmonShellProvider).stopBatteryMonitor();
+        await globalContainer
+            .read(layabattmonShellProvider)
+            .stopBatteryMonitor();
       }
-      await Future.delayed(const Duration(seconds: 1));
-      await ref
+
+      await globalContainer
           .read(moduleStateProvider.notifier)
           .refresh(retries: 5, checkAddonId: binaryName, expectRunning: false);
 
@@ -248,7 +268,9 @@ class AddonsPageState extends ConsumerState<AddonsPage> {
       dismiss();
       if (mounted) RootifyToast.error(context, "Stop failed: $e");
     } finally {
-      ref.read(moduleStateProvider.notifier).setProcessing(binaryName, false);
+      globalContainer
+          .read(moduleStateProvider.notifier)
+          .setProcessing(binaryName, false);
     }
   }
 
@@ -320,6 +342,7 @@ class AddonCard extends StatelessWidget {
 
     // --- Component Assembly
     return RootifyCard(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       title: config.name,
       subtitle: isRunning
           ? "ACTIVE • PID: ${pid ?? '...'}"

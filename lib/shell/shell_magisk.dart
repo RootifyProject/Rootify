@@ -32,11 +32,10 @@ class MagiskShellService extends BaseShellService {
   Future<bool> isModuleInstalled(String moduleId) async {
     logger.d("MagiskShell: Verifying module residency -> $moduleId");
     try {
-      final result =
-          await exec('ls -d /data/adb/modules/$moduleId', silent: true);
-      final isInstalled =
-          result.isNotEmpty && !result.toLowerCase().contains("no such file");
-      return isInstalled;
+      final result = await exec(
+          '[ -d /data/adb/modules/$moduleId ] && echo "true" || echo "false"',
+          silent: true);
+      return result.trim() == "true";
     } catch (e) {
       logger.e("MagiskShell: Residency check failed for $moduleId", e);
       return false;

@@ -35,8 +35,8 @@ class ShellSwappinessService extends BaseShellService {
       final output =
           await exec("cat /proc/sys/vm/swappiness 2>/dev/null", silent: true);
       return int.tryParse(output.trim()) ?? 60;
-    } catch (e) {
-      logger.e("SwappinessShell: Read error", e);
+    } catch (e, stack) {
+      logger.e("SwappinessShell: Read error", e, stack, true);
       return 60;
     }
   }
@@ -45,7 +45,12 @@ class ShellSwappinessService extends BaseShellService {
     // Comment: Clamping to 200 as some advanced kernels allow exceeding 100
     final val = value.clamp(0, 200);
     logger.i("SwappinessShell: Updating VM swappiness -> $val");
-    await exec("echo $val > /proc/sys/vm/swappiness");
+    const shellPath = "/data/adb/modules/rootify/shell";
+    final result = await exec("sh $shellPath/SWAP-AGGRESIVE.sh $val");
+    if (result.contains("ERROR")) {
+      logger.e("SwappinessShell: Failed to set swappiness: $result", null, null,
+          true);
+    }
   }
 
   // --- Sub
@@ -57,8 +62,8 @@ class ShellSwappinessService extends BaseShellService {
           "cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null",
           silent: true);
       return int.tryParse(output.trim()) ?? 100;
-    } catch (e) {
-      logger.e("SwappinessShell: Read error", e);
+    } catch (e, stack) {
+      logger.e("SwappinessShell: Read error", e, stack, true);
       return 100;
     }
   }
@@ -66,7 +71,12 @@ class ShellSwappinessService extends BaseShellService {
   Future<void> setVfsCachePressure(int value) async {
     final val = value.clamp(0, 1000);
     logger.i("SwappinessShell: Updating VFS cache pressure -> $val");
-    await exec("echo $val > /proc/sys/vm/vfs_cache_pressure");
+    const shellPath = "/data/adb/modules/rootify/shell";
+    final result = await exec("sh $shellPath/VFS-CACHE.sh $val");
+    if (result.contains("ERROR")) {
+      logger.e("SwappinessShell: Failed to set VFS cache pressure: $result",
+          null, null, true);
+    }
   }
 
   // --- Sub
@@ -77,8 +87,8 @@ class ShellSwappinessService extends BaseShellService {
       final output =
           await exec("cat /proc/sys/vm/dirty_ratio 2>/dev/null", silent: true);
       return int.tryParse(output.trim()) ?? 20;
-    } catch (e) {
-      logger.e("SwappinessShell: Read error", e);
+    } catch (e, stack) {
+      logger.e("SwappinessShell: Read error", e, stack, true);
       return 20;
     }
   }

@@ -17,17 +17,25 @@
 // ---- SYSTEM ---
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme_provider.dart';
 
 // ---- MAJOR ---
 // Dark Theme Specification
 class AppDarkTheme {
   // --- Sub
   // Master Theme Data Constructor
-  static ThemeData theme(Color accentColor, {ColorScheme? colorScheme}) {
+  static ThemeData theme(Color accentColor,
+      {required AppVisualStyle visualStyle, ColorScheme? colorScheme}) {
     // Comment: Derived scheme from seed color (Monet or Manual)
     final effectiveColorScheme = colorScheme ??
         ColorScheme.fromSeed(
-            seedColor: accentColor, brightness: Brightness.dark);
+          seedColor: accentColor,
+          brightness: Brightness.dark,
+          // Detail: Aurora uses slightly more vibrant contrast
+          dynamicSchemeVariant: visualStyle == AppVisualStyle.aurora
+              ? DynamicSchemeVariant.vibrant
+              : DynamicSchemeVariant.tonalSpot,
+        );
 
     final typography =
         Typography.material2021(platform: TargetPlatform.android);

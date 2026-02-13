@@ -83,17 +83,20 @@ class CpuShellService extends BaseShellService {
   }
 
   Future<void> setGovernor(String policyPath, String governor) async {
-    logger.i("CpuShell: Scaling transition -> $policyPath [$governor]");
-    final path = "$policyPath/scaling_governor";
-    // Comment: Permission escalation required for write access to certain kernels
-    await exec("chmod 0664 $path && echo $governor > $path");
+    logger.i("CpuShell: setGovernor $policyPath [$governor]");
+    final policyNum = policyPath.replaceAll(RegExp(r'.*policy'), '');
+    const modPath = "/data/adb/modules/rootify/shell";
+
+    // Detail: Utilize granular CAPSLOCK zigbin wrapper
+    await exec("sh $modPath/GOVERNOR.sh $policyNum $governor 2>&1");
   }
 
   Future<void> setGlobalGovernor(String governor) async {
-    logger.i("CpuShell: Applying global scaling profile -> $governor");
-    final policies = await getCpuPolicies();
-    for (var policy in policies) {
-      await setGovernor(policy, governor);
+    logger.i("CpuShell: Global Scaling transition -> [$governor]");
+
+    // Applying to all common policies (0-7 for octa-core)
+    for (int i = 0; i < 8; i++) {
+      await exec("sh /data/adb/modules/rootify/shell/GOVERNOR.sh $i $governor");
     }
   }
 
@@ -104,8 +107,13 @@ class CpuShellService extends BaseShellService {
 
   Future<void> setMinFreq(String policyPath, String freq) async {
     logger.i("CpuShell: setMinFreq [$policyPath] -> $freq");
-    final path = "$policyPath/scaling_min_freq";
-    await exec("chmod 0664 $path && echo $freq > $path && chmod 0444 $path");
+    final policyNum = policyPath.replaceAll(RegExp(r'.*policy'), '');
+    const modPath = "/data/adb/modules/rootify/shell";
+
+    final output = await exec("sh $modPath/MINFREQ.sh $policyNum $freq 2>&1");
+    if (output.isNotEmpty) {
+      logger.d("CpuShell: MINFREQ output -> $output");
+    }
   }
 
   Future<String> getMaxFreq(String policyPath) async {
@@ -115,8 +123,13 @@ class CpuShellService extends BaseShellService {
 
   Future<void> setMaxFreq(String policyPath, String freq) async {
     logger.i("CpuShell: setMaxFreq [$policyPath] -> $freq");
-    final path = "$policyPath/scaling_max_freq";
-    await exec("chmod 0664 $path && echo $freq > $path && chmod 0444 $path");
+    final policyNum = policyPath.replaceAll(RegExp(r'.*policy'), '');
+    const modPath = "/data/adb/modules/rootify/shell";
+
+    final output = await exec("sh $modPath/MAXFREQ.sh $policyNum $freq 2>&1");
+    if (output.isNotEmpty) {
+      logger.d("CpuShell: MAXFREQ output -> $output");
+    }
   }
 
   Future<String> getCurrentFreq(String policyPath) async {

@@ -54,6 +54,8 @@ class RootifyCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
+    final themeState = ref.watch(themeProvider);
+    final isAurora = themeState.visualStyle == AppVisualStyle.aurora;
 
     // --- Sub
     // Header Construction Logic
@@ -159,19 +161,47 @@ class RootifyCard extends ConsumerWidget {
               horizontal: dynamicHorizontalMargin,
             );
 
-        // Detail: Final Render with Glassy Blur Effect
+        // Detail: Final Render with Style-Based Color Logic
+        final blurEnabled = themeState.enableBlurCards;
+        Color cardColor;
+
+        if (isAurora) {
+          if (blurEnabled) {
+            cardColor = isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.03);
+          } else {
+            // Solid Aurora fallback: Slightly tinted surface for "vibrant" feel
+            cardColor = isDarkMode
+                ? Color.alphaBlend(colorScheme.primary.withValues(alpha: 0.12),
+                    colorScheme.surface)
+                : Color.alphaBlend(colorScheme.primary.withValues(alpha: 0.08),
+                    colorScheme.surface);
+          }
+        } else {
+          // Material 3 fallback: Standard tonal surfaces
+          cardColor = isDarkMode
+              ? colorScheme.surfaceContainer
+              : colorScheme.surfaceContainerLow;
+
+          if (blurEnabled) {
+            cardColor = cardColor.withValues(alpha: 0.8);
+          }
+        }
+
         return Padding(
           padding: effectiveMargin,
           child: RootifyBlur(
             category: BlurCategory.card,
-            color: isDarkMode
-                ? colorScheme.surfaceContainer.withValues(alpha: 0.8)
-                : colorScheme.surfaceContainerLow.withValues(alpha: 0.9),
+            color: cardColor,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: colorScheme.outlineVariant
-                  .withValues(alpha: isDarkMode ? 0.2 : 0.4),
-              width: 1.5,
+              color: isAurora
+                  ? colorScheme.primary
+                      .withValues(alpha: isDarkMode ? 0.15 : 0.1)
+                  : colorScheme.outlineVariant
+                      .withValues(alpha: isDarkMode ? 0.2 : 0.4),
+              width: isAurora ? 1.0 : 1.5,
             ),
             child: columnContent,
           ),
@@ -205,20 +235,52 @@ class RootifySubCard extends ConsumerWidget {
     // --- Sub
     // Theme & Container Setup
     final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final themeState = ref.watch(themeProvider);
+    final isAurora = themeState.visualStyle == AppVisualStyle.aurora;
+    final blurEnabled = themeState.enableBlurCards;
 
-    Widget content = Container(
-      // Detail: flexible width plays better with parent constraints
-      width: double.infinity,
-      padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color ??
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
+    Color subCardColor;
+    if (color != null) {
+      subCardColor = color!;
+    } else if (isAurora) {
+      if (blurEnabled) {
+        subCardColor = isDarkMode
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.02);
+      } else {
+        // Solid Aurora fallback
+        subCardColor = isDarkMode
+            ? Color.alphaBlend(Colors.white.withValues(alpha: 0.08),
+                theme.colorScheme.surfaceContainer)
+            : Color.alphaBlend(Colors.black.withValues(alpha: 0.04),
+                theme.colorScheme.surfaceContainer);
+      }
+    } else {
+      subCardColor = isDarkMode
+          ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+          : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
+
+      if (!blurEnabled) {
+        subCardColor = subCardColor.withValues(alpha: 1.0);
+      }
+    }
+
+    Widget content = RootifyBlur(
+      category: BlurCategory.subcard,
+      color: subCardColor,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: isAurora
+            ? theme.colorScheme.primary
+                .withValues(alpha: isDarkMode ? 0.15 : 0.1)
+            : theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
       ),
-      child: child,
+      child: Container(
+        width: double.infinity,
+        padding: padding ?? const EdgeInsets.all(16),
+        child: child,
+      ),
     );
 
     // --- Sub
@@ -229,7 +291,10 @@ class RootifySubCard extends ConsumerWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          child: content,
+          child: Padding(
+            padding: margin ?? EdgeInsets.zero,
+            child: content,
+          ),
         ),
       );
     }

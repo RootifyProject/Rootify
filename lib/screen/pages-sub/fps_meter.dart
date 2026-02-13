@@ -16,6 +16,7 @@
 
 // ---- SYSTEM ---
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // ---- EXTERNAL ---
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,9 +34,11 @@ import '../statusbar/sb_fpsmeter.dart';
 import '../../widgets/cards.dart';
 import '../../services/app_tracker_service.dart';
 import '../../widgets/toast.dart';
+import '../../theme/rootify_background_provider.dart';
 
 // ---- MAJOR ---
-// Performance Monitoring & FPS Meter Configuration
+// Performance Monitoring & FPS Meter Configuration Page
+// --- FpsMeterPage
 class FpsMeterPage extends ConsumerStatefulWidget {
   const FpsMeterPage({super.key});
 
@@ -45,10 +48,12 @@ class FpsMeterPage extends ConsumerStatefulWidget {
 
 class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
     with WidgetsBindingObserver {
-  // ---- STATE VARIABLES ---
+  // --- Sub
+  // Active state of the overlay engine
   bool _isActive = false;
 
-  // ---- LIFECYCLE ---
+  // --- Sub
+  // Lifecycle Management
 
   @override
   void initState() {
@@ -78,155 +83,129 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
     }
   }
 
-  // ---- EVENT HANDLERS ---
+  // --- Sub
+  // Event Handlers
 
   Future<void> _checkStatus() async {
     final status = await FlutterOverlayWindow.isActive();
     if (mounted) {
+      // Detail: Synchronize local state with overlay engine
       setState(() => _isActive = status);
     }
   }
 
-  // ---- UI BUILDER ---
+  // ---- MAJOR ---
+  // UI Builder
 
   @override
   Widget build(BuildContext context) {
     // --- Sub
-    // Theme & Context
+    // Theme & Contextual Layout
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final topPadding = MediaQuery.of(context).padding.top;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // --- Sub
-          // 1. Mirrored Dynamic Mesh Background
-          Positioned.fill(
-            child: AnimatedContainer(
-              duration: const Duration(seconds: 1),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colorScheme.surface,
-                    colorScheme.surfaceContainer,
-                    colorScheme.surfaceContainerHigh,
-                  ],
-                  stops: const [0.0, 0.4, 1.0],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Primary Glow
-                  Positioned(
-                    top: -120,
-                    left: -120,
-                    child: Container(
-                      width: 450,
-                      height: 450,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            colorScheme.primary.withValues(alpha: 0.15),
-                            colorScheme.primary.withValues(alpha: 0.0),
-                          ],
-                        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness:
+            isDarkMode ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness:
+            isDarkMode ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: RootifySubBackground(
+          child: Stack(
+            children: [
+              // --- Sub
+              // Scrolling content layer
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Header Space
+                  SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
+
+                  // Feature Hero Icon
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: Column(
+                        children: [
+                          // --- Sub
+                          // Branded hero icon with glow
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colorScheme.primary.withValues(alpha: 0.1),
+                              border: Border.all(
+                                  color: colorScheme.primary
+                                      .withValues(alpha: 0.2)),
+                            ),
+                            child: Icon(LucideIcons.activity,
+                                size: 48, color: colorScheme.primary),
+                          ).animate().scale(
+                              duration: 400.ms, curve: Curves.easeOutBack),
+                          const SizedBox(height: 16),
+                          // Detail: Page title with tracking
+                          Text(
+                            "FPS METER",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 4,
+                              color: colorScheme.primary,
+                            ),
+                          ).animate().fadeIn(delay: 200.ms),
+                        ],
                       ),
-                    ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                        begin: const Offset(30, -30),
-                        end: const Offset(-30, 30),
-                        duration: 12.seconds),
+                    ),
+                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                  // Functional Widgets
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        _buildSectionHeader(context, "OVERLAY ENGINE"),
+                        const SizedBox(height: 12),
+                        _buildToggleCard(context),
+                        const SizedBox(height: 32),
+                        _buildSectionHeader(context, "AUTOMATION"),
+                        const SizedBox(height: 12),
+                        _buildAutomationCard(context),
+                        const SizedBox(height: 32),
+                        _buildSectionHeader(context, "FEATURE OVERVIEW"),
+                        const SizedBox(height: 12),
+                        _buildFeatureGrid(context),
+                        const SizedBox(height: 100),
+                      ]),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
 
-          // --- Sub
-          // 2. Main Scrolling Content
-          CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Header Space
-              SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
-
-              // Feature Hero Icon
-              SliverToBoxAdapter(
-                child: Center(
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: colorScheme.primary.withValues(alpha: 0.1),
-                          border: Border.all(
-                              color:
-                                  colorScheme.primary.withValues(alpha: 0.2)),
-                        ),
-                        child: Icon(LucideIcons.activity,
-                            size: 48, color: colorScheme.primary),
-                      )
-                          .animate()
-                          .scale(duration: 400.ms, curve: Curves.easeOutBack),
-                      const SizedBox(height: 16),
-                      Text(
-                        "FPS METER",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 4,
-                          color: colorScheme.primary,
-                        ),
-                      ).animate().fadeIn(delay: 200.ms),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
-
-              // Functional Widgets
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    _buildSectionHeader(context, "OVERLAY ENGINE"),
-                    const SizedBox(height: 12),
-                    _buildToggleCard(context),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader(context, "AUTOMATION"),
-                    const SizedBox(height: 12),
-                    _buildAutomationCard(context),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader(context, "FEATURE OVERVIEW"),
-                    const SizedBox(height: 12),
-                    _buildFeatureGrid(context),
-                    const SizedBox(height: 100),
-                  ]),
-                ),
+              // --- Sub
+              // Floating status display
+              Positioned(
+                top: topPadding + 10,
+                left: 0,
+                right: 0,
+                child: const FpsMeterStatusBar(),
               ),
             ],
           ),
-
-          // --- Sub
-          // 3. Floating Status Bar
-          Positioned(
-            top: topPadding + 10,
-            left: 0,
-            right: 0,
-            child: const FpsMeterStatusBar(),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  // ---- HELPER BUILDERS ---
+  // --- Sub
+  // Helper Builders
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Text(
@@ -242,14 +221,14 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
 
   Widget _buildToggleCard(BuildContext context) {
     // --- Sub
-    // Resources
+    // Shared Preferences Access
     final prefs = ref.watch(sharedPreferencesProvider);
 
     return RootifyCard(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Display Toggle
+          // Detail: Display switch for technical overlay
           _buildActionRow(
             context,
             icon: LucideIcons.mousePointer2,
@@ -271,7 +250,7 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
             },
           ),
           const Divider(height: 32, indent: 40),
-          // Passthrough Toggle
+          // Detail: Interaction lock for touch passthrough
           _buildActionRow(
             context,
             icon: LucideIcons.lock,
@@ -317,7 +296,8 @@ class _FpsMeterPageState extends ConsumerState<FpsMeterPage>
             },
           ),
           const Divider(height: 32, indent: 40),
-          // Whitelist management
+          // --- Sub
+          // Whitelist management interface
           Row(
             children: [
               const Icon(LucideIcons.listTodo, size: 18, color: Colors.white70),

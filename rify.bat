@@ -34,11 +34,6 @@ if %ERRORLEVEL% neq 0 (
     echo Error: Flutter SDK not found in PATH.
     exit /b 1
 )
-if "%JAVA_HOME%"=="" (
-    echo Warning: JAVA_HOME is not set. Gradle might fail.
-) else (
-    echo JDK Path: %JAVA_HOME%
-)
 echo Environment OK.
 echo ----------------------------------
 

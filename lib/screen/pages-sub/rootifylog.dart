@@ -33,6 +33,7 @@ import '../../services/logcat_service.dart';
 import '../statusbar/sb_logs.dart';
 import '../../widgets/toast.dart';
 import '../overlays/help_dialog.dart';
+import '../../theme/rootify_background_provider.dart';
 
 // ---- MAJOR ---
 // Multi-buffer System Log Observer & Application Diagnostic Console
@@ -226,269 +227,209 @@ class _RootifyLogPageState extends ConsumerState<RootifyLogPage> {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            // --- Sub
-            // 1. Mirrored Dynamic Mesh Background
-            Positioned.fill(
-              child: AnimatedContainer(
-                duration: const Duration(seconds: 1),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.surface,
-                      colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainerHigh,
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: -120,
-                      left: -120,
-                      child: Container(
-                        width: 450,
-                        height: 450,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.primary.withValues(alpha: 0.15),
-                              colorScheme.primary.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(30, -30),
-                          end: const Offset(-30, 30),
-                          duration: 12.seconds),
-                    ),
-                    Positioned(
-                      bottom: -80,
-                      right: -80,
-                      child: Container(
-                        width: 350,
-                        height: 350,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.secondary.withValues(alpha: 0.1),
-                              colorScheme.secondary.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(-30, 30),
-                          end: const Offset(30, -30),
-                          duration: 10.seconds),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // --- Sub
-            // 2. Main Scrolling Content
-            CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(child: SizedBox(height: topPadding + 85)),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _isLogcatMode ? "LOGCAT" : "APP LOGS",
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 2.0,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerHighest
-                                    .withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                              child: Row(
-                                children: [
-                                  _ModeBtn(
-                                    label: "APP",
-                                    active: !_isLogcatMode,
-                                    onTap: () => _toggleLogcat(false),
-                                  ),
-                                  _ModeBtn(
-                                    label: "LOGCAT",
-                                    active: _isLogcatMode,
-                                    onTap: () => _toggleLogcat(true),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        if (!_isLogcatMode)
-                          _DebugToggle(
-                            isActive: logger.isDebugEnabled,
-                            onChanged: (val) async {
-                              HapticFeedback.mediumImpact();
-                              setState(() => logger.isDebugEnabled = val);
-                              final p = await SharedPreferences.getInstance();
-                              await p.setBool('debug_enabled', val);
-                            },
-                          ),
-                        const SizedBox(height: 12),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: terminalHeight,
-                          child: _buildTerminalWindow()
-                              .animate()
-                              .fadeIn(delay: 200.ms, duration: 400.ms),
-                        ),
-                        const SizedBox(height: 24),
-                        if (!_isLogcatMode) ...[
-                          _LargeActionButton(
-                            label: "CLEAR LOGS",
-                            icon: LucideIcons.trash2,
-                            color: colorScheme.error,
-                            onTap: () async {
-                              HapticFeedback.mediumImpact();
-                              await logger.clearLogs();
-                              setState(() => _liveLogs.clear());
-                              if (context.mounted) {
-                                RootifyToast.show(context, "Logs cleared");
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 12),
+        body: RootifySubBackground(
+          child: Stack(
+            children: [
+              // --- Sub
+              // 2. Main Scrolling Content
+              CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(child: SizedBox(height: topPadding + 85)),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
-                                child: _LargeActionButton(
-                                  label: "COPY LOGS",
-                                  icon: LucideIcons.copy,
-                                  color: colorScheme.primary,
-                                  onTap: () async {
-                                    await Clipboard.setData(ClipboardData(
-                                        text: _liveLogs.join('\n')));
-                                    HapticFeedback.lightImpact();
-                                    if (context.mounted) {
-                                      RootifyToast.show(
-                                          context, "Logs copied to clipboard");
+                              Text(
+                                _isLogcatMode ? "LOGCAT" : "APP LOGS",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2.0,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(28),
+                                ),
+                                child: Row(
+                                  children: [
+                                    _ModeBtn(
+                                      label: "APP",
+                                      active: !_isLogcatMode,
+                                      onTap: () => _toggleLogcat(false),
+                                    ),
+                                    _ModeBtn(
+                                      label: "LOGCAT",
+                                      active: _isLogcatMode,
+                                      onTap: () => _toggleLogcat(true),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          if (!_isLogcatMode)
+                            _DebugToggle(
+                              isActive: logger.isDebugEnabled,
+                              onChanged: (val) async {
+                                HapticFeedback.mediumImpact();
+                                setState(() => logger.isDebugEnabled = val);
+                                final p = await SharedPreferences.getInstance();
+                                await p.setBool('debug_enabled', val);
+                              },
+                            ),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: terminalHeight,
+                            child: _buildTerminalWindow()
+                                .animate()
+                                .fadeIn(delay: 200.ms, duration: 400.ms),
+                          ),
+                          const SizedBox(height: 24),
+                          if (!_isLogcatMode) ...[
+                            _LargeActionButton(
+                              label: "CLEAR LOGS",
+                              icon: LucideIcons.trash2,
+                              color: colorScheme.error,
+                              onTap: () async {
+                                HapticFeedback.mediumImpact();
+                                await logger.clearLogs();
+                                setState(() => _liveLogs.clear());
+                                if (context.mounted) {
+                                  RootifyToast.show(context, "Logs cleared");
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _LargeActionButton(
+                                    label: "COPY LOGS",
+                                    icon: LucideIcons.copy,
+                                    color: colorScheme.primary,
+                                    onTap: () async {
+                                      await Clipboard.setData(ClipboardData(
+                                          text: _liveLogs.join('\n')));
+                                      HapticFeedback.lightImpact();
+                                      if (context.mounted) {
+                                        RootifyToast.show(context,
+                                            "Logs copied to clipboard");
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _LargeActionButton(
+                                    label: "SAVE LOGS",
+                                    icon: LucideIcons.save,
+                                    color: colorScheme.secondary,
+                                    onTap: () => _showSaveDialog(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _LargeActionButton(
+                                  label: _isLogcatRunning
+                                      ? "STOP LOGCAT"
+                                      : "START LOGCAT",
+                                  icon: _isLogcatRunning
+                                      ? LucideIcons.stopCircle
+                                      : LucideIcons.playCircle,
+                                  color: _isLogcatRunning
+                                      ? colorScheme.error
+                                      : colorScheme.primary,
+                                  onTap: () {
+                                    if (_isLogcatRunning) {
+                                      _stopLogcat();
+                                    } else {
+                                      _startLogcat();
                                     }
                                   },
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _LargeActionButton(
-                                  label: "SAVE LOGS",
-                                  icon: LucideIcons.save,
-                                  color: colorScheme.secondary,
-                                  onTap: () => _showSaveDialog(context),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _LargeActionButton(
+                                        label: "SAVE LOGS",
+                                        icon: LucideIcons.save,
+                                        color: colorScheme.secondary,
+                                        onTap: () => _showSaveDialog(context),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _LargeActionButton(
+                                        label: "CONFIGURE",
+                                        icon: LucideIcons.settings2,
+                                        color: colorScheme.primary,
+                                        onTap: () => _showLogcatFilter(context),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        ] else
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _LargeActionButton(
-                                label: _isLogcatRunning
-                                    ? "STOP LOGCAT"
-                                    : "START LOGCAT",
-                                icon: _isLogcatRunning
-                                    ? LucideIcons.stopCircle
-                                    : LucideIcons.playCircle,
-                                color: _isLogcatRunning
-                                    ? colorScheme.error
-                                    : colorScheme.primary,
-                                onTap: () {
-                                  if (_isLogcatRunning) {
-                                    _stopLogcat();
-                                  } else {
-                                    _startLogcat();
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _LargeActionButton(
-                                      label: "SAVE LOGS",
-                                      icon: LucideIcons.save,
-                                      color: colorScheme.secondary,
-                                      onTap: () => _showSaveDialog(context),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _LargeActionButton(
-                                      label: "CONFIGURE",
-                                      icon: LucideIcons.settings2,
-                                      color: colorScheme.primary,
-                                      onTap: () => _showLogcatFilter(context),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              _LargeActionButton(
-                                label: "CLEAR LOGCAT",
-                                icon: LucideIcons.trash2,
-                                color: colorScheme.error.withValues(alpha: 0.8),
-                                onTap: () {
-                                  HapticFeedback.mediumImpact();
-                                  setState(() => _logcatLogs.clear());
-                                  RootifyToast.show(context, "Logcat cleared");
-                                },
-                              ),
-                            ],
-                          ),
-                        const SizedBox(height: 40),
-                      ],
+                                const SizedBox(height: 12),
+                                _LargeActionButton(
+                                  label: "CLEAR LOGCAT",
+                                  icon: LucideIcons.trash2,
+                                  color:
+                                      colorScheme.error.withValues(alpha: 0.8),
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    setState(() => _logcatLogs.clear());
+                                    RootifyToast.show(
+                                        context, "Logcat cleared");
+                                  },
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 40),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 60)),
-              ],
-            ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 60)),
+                ],
+              ),
 
-            // --- Sub
-            // 3. Floating Feature Status Bar
-            Positioned(
-              top: topPadding + 10,
-              left: 0,
-              right: 0,
-              child: const LogsStatusBar(),
-            ),
-          ],
+              // --- Sub
+              // 3. Floating Feature Status Bar
+              Positioned(
+                top: topPadding + 10,
+                left: 0,
+                right: 0,
+                child: const LogsStatusBar(),
+              ),
+            ],
+          ),
         ),
       ),
     );

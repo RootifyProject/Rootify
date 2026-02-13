@@ -528,9 +528,8 @@ class FpsGoShellService extends BaseShellService {
   Future<void> setFpsGoStatus(String path, bool enable) async {
     final val = enable ? "1" : "0";
     logger.i("FpsGoShell: Scaling transition -> $enable");
-    await exec("echo $val > $path/fpsgo_enable 2>/dev/null");
-    await exec("echo $val > $path/fbt_enable 2>/dev/null");
-    await exec("echo $val > $path/enabled 2>/dev/null");
+    // Use Shell Wrapper for robustness (logging/fallback)
+    await exec("sh /data/adb/modules/rootify/shell/FPSGO.sh enable $path $val");
   }
 
   // Comment: RESTORED - Required for mode switching
@@ -569,8 +568,9 @@ class FpsGoShellService extends BaseShellService {
   // Comment: RESTORED - Required for mode switching
   Future<void> setFpsGoMode(String path, String mode) async {
     logger.i("FpsGoShell: Mode update -> $mode");
-    await exec("echo '$mode' > $path/mode 2>/dev/null");
-    await exec("echo '$mode' > $path/profile 2>/dev/null");
+    // Use Shell Wrapper for robustness
+    await exec(
+        "sh /data/adb/modules/rootify/shell/FPSGO.sh mode $path '$mode'");
   }
 
   // --- Sub
@@ -596,8 +596,9 @@ class FpsGoShellService extends BaseShellService {
       }
 
       if (val != null) {
+        // Use Shell Wrapper for robust granular tuning
         commands.add(
-            "[ -f ${param.path} ] && echo '$val' > ${param.path} 2>/dev/null");
+            "sh /data/adb/modules/rootify/shell/FPSGO.sh set ${param.path} '$val'");
       }
     }
 
@@ -652,7 +653,9 @@ class FpsGoShellService extends BaseShellService {
   // Comment: RESTORED - Required for custom tuning
   Future<void> setParameterValue(String path, String value) async {
     logger.i("FpsGoShell: Tunable update -> $path = $value");
-    await exec("echo '$value' > $path 2>/dev/null");
+    // Use Shell Wrapper for individual tuning
+    await exec(
+        "sh /data/adb/modules/rootify/shell/FPSGO.sh set $path '$value'");
   }
 
   Future<Map<String, String>> getMultipleParameterValues(

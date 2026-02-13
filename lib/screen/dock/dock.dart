@@ -117,13 +117,22 @@ class _RootifyDockState extends ConsumerState<RootifyDock>
     // Dynamic Sizing
     // Adjust padding based on screen width for tablet/phone flexibility
     final responsivePaddingH = screenWidth * 0.045;
+    final themeState = ref.watch(themeProvider);
+    final blurEnabled = themeState.enableBlurDockStatus;
+
     final double itemSlotWidth = _kIconSize + (responsivePaddingH * 2);
 
-    final dockBackgroundColor = isDarkMode
-        ? colorScheme.surfaceContainer
-        : colorScheme.surfaceContainerLow;
+    final dockBackgroundColor = blurEnabled
+        ? (isDarkMode
+            ? colorScheme.surfaceContainer.withValues(alpha: 0.8)
+            : colorScheme.surfaceContainerLow.withValues(alpha: 0.95))
+        : (isDarkMode
+            ? colorScheme.surfaceContainer
+            : colorScheme.surfaceContainerLow);
 
-    final borderColor = colorScheme.outlineVariant.withValues(alpha: 0.4);
+    final borderColor = themeState.visualStyle == AppVisualStyle.aurora
+        ? colorScheme.primary.withValues(alpha: 0.15)
+        : colorScheme.outlineVariant.withValues(alpha: 0.4);
 
     // Component Tree
     return DockAnimation(

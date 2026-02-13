@@ -70,7 +70,7 @@ class RootifyBlur extends ConsumerWidget {
 
     // --- Setup Filter Data
     final sigma = themeState.getSigmaFor(category);
-    final clampedSigma = sigma.clamp(0.0, 12.0); // Safety Clamp
+    final clampedSigma = sigma.clamp(0.0, 30.0); // Safety Clamp
 
     // --- Build Content
     Widget content = padding != EdgeInsets.zero

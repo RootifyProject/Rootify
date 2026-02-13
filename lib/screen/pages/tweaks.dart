@@ -21,7 +21,6 @@ import 'package:flutter/services.dart';
 
 // ---- EXTERNAL ---
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 // ---- LOCAL ---
@@ -31,9 +30,10 @@ import '../../providers/shared_prefs_provider.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/toast.dart';
 import '../widgets/cpumanager.dart';
-import '../widgets/memorymanager.dart';
+import '../widgets/zramtweaking.dart';
 import '../widgets/fpsgo_card.dart';
-import '../pages-sub/memory_manager.dart';
+import '../pages-sub/zram_tweaking.dart';
+import '../../theme/rootify_background_provider.dart';
 
 // ---- MAJOR ---
 // Unified Control Dashboard for Performance & Kernel Fine-Tuning
@@ -62,108 +62,39 @@ class _TweaksPageState extends ConsumerState<TweaksPage> {
   Widget build(BuildContext context) {
     // --- Sub
     // Theme & Context
-    final colorScheme = Theme.of(context).colorScheme;
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // --- Sub
-          // 1. Mirrored Dynamic Mesh Background
-          Positioned.fill(
-            child: AnimatedContainer(
-              duration: const Duration(seconds: 1),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colorScheme.surface,
-                    colorScheme.surfaceContainer,
-                    colorScheme.surfaceContainerHigh,
-                  ],
-                  stops: const [0.0, 0.4, 1.0],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: -120,
-                    left: -120,
-                    child: Container(
-                      width: 450,
-                      height: 450,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            colorScheme.primary.withValues(alpha: 0.15),
-                            colorScheme.primary.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                        begin: const Offset(30, -30),
-                        end: const Offset(-30, 30),
-                        duration: 12.seconds),
+      body: RootifyMainBackground(
+        child: CustomScrollView(
+          key: const PageStorageKey('tweaks_page_scroll'),
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const CpuManagerCard(),
+                  MemoryManagerCard(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const MemoryManagerPage()),
+                      );
+                    },
                   ),
-                  Positioned(
-                    bottom: -80,
-                    right: -80,
-                    child: Container(
-                      width: 350,
-                      height: 350,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            colorScheme.secondary.withValues(alpha: 0.1),
-                            colorScheme.secondary.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                        begin: const Offset(-30, 30),
-                        end: const Offset(30, -30),
-                        duration: 10.seconds),
-                  ),
-                ],
+                  const FpsGoCard(),
+                  const _ThermalSection(),
+                  const SizedBox(height: 120),
+                ]),
               ),
             ),
-          ),
-
-          // --- Sub
-          // 2. Main Scrolling Content
-          CustomScrollView(
-            key: const PageStorageKey('tweaks_page_scroll'),
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    const CpuManagerCard(),
-                    MemoryManagerCard(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const MemoryManagerPage()),
-                        );
-                      },
-                    ),
-                    const FpsGoCard(),
-                    const _ThermalSection(),
-                    const SizedBox(height: 120),
-                  ]),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -207,6 +138,7 @@ class _ThermalSectionState extends ConsumerState<_ThermalSection> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return RootifyCard(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       title: "Thermal Manager",
       subtitle: "Remove system thermal limits.",
       icon: LucideIcons.flame,

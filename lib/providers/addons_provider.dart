@@ -15,6 +15,7 @@
  */
 
 // ---- SYSTEM ---
+import 'dart:async';
 import 'dart:convert';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -107,6 +108,8 @@ class ModuleNotifier extends Notifier<ModuleState> {
   late LayaBattmonShellService _layaBMShell;
   late MagiskShellService _magiskShell;
   late SharedPreferences _prefs;
+  bool _isSyncing = false;
+  Timer? _debounceTimer;
 
   // --- Initialization
   @override
@@ -145,8 +148,21 @@ class ModuleNotifier extends Notifier<ModuleState> {
       final bmRunning = bmPid != null;
 
       // 3. Check Module Installed
+      final hasRT = await _magiskShell.isModuleInstalled("rootify");
       final hasKT = await _magiskShell.isModuleInstalled("laya_kerneltuner");
       final hasBM = await _magiskShell.isModuleInstalled("battmontester");
+
+      final info = await PackageInfo.fromPlatform();
+      final currentVersion =
+          await _magiskShell.getModuleProp("rootify", "versionCode");
+
+      // Strict Comparison: Trim and ensure both exist
+      final isOutdated = currentVersion.isNotEmpty &&
+          currentVersion != info.buildNumber &&
+          !currentVersion.contains("No such file");
+
+      logger.d(
+          "ModuleProvider: Residency=$hasRT, Local=${info.buildNumber}, Module=$currentVersion, Outdated=$isOutdated");
 
       state = state.copyWith(
         isLoading: false,
@@ -156,7 +172,14 @@ class ModuleNotifier extends Notifier<ModuleState> {
         bmPid: bmPid,
         hasKernelTunerModule: hasKT,
         hasBatteryMonitorModule: hasBM,
+        errorMessage: null, // Clear error
       );
+
+      if ((!hasRT || isOutdated) && !_isSyncing) {
+        logger.i(
+            "ModuleProvider: Initial sync required (hasRT: $hasRT, isOutdated: $isOutdated)");
+        _triggerDebouncedSync();
+      }
 
       // IMPORTANT: Update Prefs if running status changed manually
       await _updateActiveModulesInPrefs();
@@ -183,7 +206,7 @@ class ModuleNotifier extends Notifier<ModuleState> {
 
     await _prefs.setBool('laya_kt_boot', enabled);
     state = state.copyWith(isKTBootEnabled: enabled);
-    await _saveAndSync();
+    _triggerDebouncedSync();
   }
 
   Future<void> toggleBMBoot(bool enabled) async {
@@ -196,7 +219,7 @@ class ModuleNotifier extends Notifier<ModuleState> {
 
     await _prefs.setBool('laya_bm_boot', enabled);
     state = state.copyWith(isBMBootEnabled: enabled);
-    await _saveAndSync();
+    _triggerDebouncedSync();
   }
 
   Future<void> refresh(
@@ -222,6 +245,20 @@ class ModuleNotifier extends Notifier<ModuleState> {
         await loadStatus();
       }
     }
+  }
+
+  void _triggerDebouncedSync() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!_isSyncing) {
+        _isSyncing = true;
+        try {
+          await _saveAndSync();
+        } finally {
+          _isSyncing = false;
+        }
+      }
+    });
   }
 
   Future<void> _saveAndSync() async {

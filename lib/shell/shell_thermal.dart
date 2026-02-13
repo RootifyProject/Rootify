@@ -56,46 +56,8 @@ class ThermalShellService extends BaseShellService {
   // Aggressive Thermal Controls
   Future<void> disableThermal() async {
     logger.w("ThermalShell: DISABLING THERMAL THROTTLING (Bypassing safety)");
-
-    // Comment: 1. Stop Userspace Daemons (Comprehensive vendor list)
-    final services = [
-      "thermal-engine",
-      "thermald",
-      "traced",
-      "vendor.thermal-engine",
-      "mi_thermald",
-      "thermal_manager",
-      "logd",
-      "perf_service",
-      "vendor.perf-hal-1-0",
-      "statsd",
-      "cnss_diag",
-      "thermal-hal-1-0",
-      "android.hardware.thermal@2.0-service"
-    ];
-
-    StringBuffer cmd = StringBuffer();
-    for (var svc in services) {
-      cmd.write("stop $svc 2>/dev/null; setprop ctl.stop $svc 2>/dev/null; ");
-    }
-
-    // Comment: 2. Disable Hardware/Kernel Thermal Zones
-    cmd.write("for zone in /sys/class/thermal/thermal_zone*; do ");
-    cmd.write("  chmod 0644 \$zone/mode 2>/dev/null; ");
-    cmd.write("  echo disabled > \$zone/mode 2>/dev/null; ");
-    cmd.write("  echo 0 > \$zone/mode 2>/dev/null; ");
-    cmd.write("done; ");
-
-    // Comment: 3. Disable Driver-level throttling (Adreno/Mediatek/Msm)
-    cmd.write(
-        "echo 0 > /sys/module/msm_thermal/core_control/enabled 2>/dev/null; ");
-    cmd.write(
-        "echo 0 > /sys/module/msm_thermal/parameters/enabled 2>/dev/null; ");
-    cmd.write("echo 0 > /proc/driver/thermal/cl_enable 2>/dev/null; ");
-    cmd.write(
-        "echo 0 > /sys/module/skin_thermal_management/parameters/enable 2>/dev/null; ");
-
-    await exec(cmd.toString());
+    const shellPath = "/data/adb/modules/rootify/shell";
+    await exec("sh $shellPath/THERMAL.sh");
   }
 
   Future<void> enableThermal() async {

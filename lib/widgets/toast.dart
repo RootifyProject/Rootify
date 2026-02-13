@@ -41,6 +41,7 @@ class RootifyToast {
     IconData? icon,
     bool isError = false,
     Duration duration = const Duration(seconds: 4),
+    List<Widget>? actions,
   }) {
     // Detail: Dismiss existing entry if active to avoid stacking
     _currentEntry?.remove();
@@ -55,6 +56,7 @@ class RootifyToast {
         icon: icon,
         isError: isError,
         duration: duration,
+        actions: actions,
         onDismiss: () {
           _currentEntry?.remove();
           _currentEntry = null;
@@ -119,6 +121,7 @@ class _ToastWidget extends ConsumerWidget {
   final bool isError;
   final Duration duration;
   final VoidCallback onDismiss;
+  final List<Widget>? actions;
 
   const _ToastWidget({
     required this.message,
@@ -126,6 +129,7 @@ class _ToastWidget extends ConsumerWidget {
     required this.duration,
     this.icon,
     this.isError = false,
+    this.actions,
   });
 
   // --- UI Builder
@@ -139,10 +143,26 @@ class _ToastWidget extends ConsumerWidget {
 
     // Detail: Standard glass morphology calculation
     final double topMargin = MediaQuery.of(context).padding.top + 70;
-    final glassColor = colorScheme.surfaceContainer;
-    final textColor = colorScheme.onSurface;
+    final themeState = ref.watch(themeProvider);
+    final isAurora = themeState.visualStyle == AppVisualStyle.aurora;
+    final blurEnabled = themeState.enableBlurToast;
+
+    final glassColor = isAurora
+        ? (blurEnabled
+            ? colorScheme.surfaceContainer.withValues(alpha: 0.6)
+            : Color.alphaBlend(colorScheme.primary.withValues(alpha: 0.1),
+                colorScheme.surfaceContainer))
+        : (blurEnabled
+            ? colorScheme.inverseSurface.withValues(alpha: 0.9)
+            : colorScheme.inverseSurface);
+
+    final textColor =
+        isAurora ? colorScheme.onSurface : colorScheme.onInverseSurface;
+
     final accentColor = isError ? colorScheme.error : colorScheme.primary;
-    final borderColor = colorScheme.outline.withValues(alpha: 0.4);
+    final borderColor = isAurora
+        ? colorScheme.primary.withValues(alpha: blurEnabled ? 0.4 : 0.6)
+        : Colors.transparent;
 
     // --- Sub
     // Visual Content Assembly
@@ -156,7 +176,7 @@ class _ToastWidget extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, color: textColor, size: 20),
+                Icon(icon, color: isAurora ? textColor : accentColor, size: 20),
                 const SizedBox(width: 14),
               ],
               Flexible(
@@ -179,7 +199,9 @@ class _ToastWidget extends ConsumerWidget {
             width: 40,
             height: 3,
             decoration: BoxDecoration(
-              color: textColor.withValues(alpha: 0.2),
+              color: isAurora
+                  ? textColor.withValues(alpha: 0.2)
+                  : accentColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(2),
             ),
             child: FractionallySizedBox(
@@ -194,6 +216,14 @@ class _ToastWidget extends ConsumerWidget {
             ).animate(onPlay: (c) => c.repeat()).shimmer(
                 duration: duration, color: accentColor.withValues(alpha: 0.5)),
           ),
+
+          if (actions != null && actions!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: actions!,
+            ),
+          ],
         ],
       ),
     );
@@ -214,17 +244,20 @@ class _ToastWidget extends ConsumerWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(color: borderColor, width: 1.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
+                boxShadow: isAurora
+                    ? [
+                        BoxShadow(
+                          color: Colors.black
+                              .withValues(alpha: isDark ? 0.2 : 0.05),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                    : null,
               ),
               child: RootifyBlur(
                 category: BlurCategory.toast,
-                color: glassColor.withValues(alpha: 0.6),
+                color: glassColor,
                 borderRadius: BorderRadius.circular(28),
                 child: content,
               ),
@@ -243,24 +276,40 @@ class _ToastWidget extends ConsumerWidget {
 
 // ---- MAJOR ---
 // Persistent Loading Indicator Variant
-class _LoadingToastWidget extends StatelessWidget {
+class _LoadingToastWidget extends ConsumerWidget {
   final String message;
 
   const _LoadingToastWidget({required this.message});
 
   // --- UI Builder
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // --- Sub
     // Theme & Orientation Setup
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final themeState = ref.watch(themeProvider);
+    final isAurora = themeState.visualStyle == AppVisualStyle.aurora;
+    final blurEnabled = themeState.enableBlurToast;
 
     final double topMargin = MediaQuery.of(context).padding.top + 70;
-    final glassColor = colorScheme.surfaceContainer;
-    final textColor = colorScheme.onSurface;
-    final borderColor = colorScheme.outline.withValues(alpha: 0.4);
+
+    final glassColor = isAurora
+        ? (blurEnabled
+            ? colorScheme.surfaceContainer.withValues(alpha: 0.6)
+            : Color.alphaBlend(colorScheme.primary.withValues(alpha: 0.1),
+                colorScheme.surfaceContainer))
+        : (blurEnabled
+            ? colorScheme.inverseSurface.withValues(alpha: 0.9)
+            : colorScheme.inverseSurface);
+
+    final textColor =
+        isAurora ? colorScheme.onSurface : colorScheme.onInverseSurface;
+
+    final borderColor = isAurora
+        ? colorScheme.outline.withValues(alpha: blurEnabled ? 0.4 : 0.8)
+        : Colors.transparent;
 
     // --- Sub
     // Content Layout
@@ -312,17 +361,20 @@ class _LoadingToastWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(color: borderColor, width: 1.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
+                boxShadow: isAurora
+                    ? [
+                        BoxShadow(
+                          color: Colors.black
+                              .withValues(alpha: isDark ? 0.2 : 0.05),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                    : null,
               ),
               child: RootifyBlur(
                 category: BlurCategory.toast,
-                color: glassColor.withValues(alpha: 0.6),
+                color: glassColor,
                 borderRadius: BorderRadius.circular(28),
                 child: content,
               ),

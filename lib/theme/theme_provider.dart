@@ -32,9 +32,11 @@ enum AppThemeMode { system, appDefault, light, dark }
 
 enum AppBlurStyle { gaussian, mica, navy, liquid }
 
-enum BlurCategory { card, toast, dock, overlay }
+enum BlurCategory { card, subcard, toast, dock, overlay }
 
 enum HeroBannerType { dynamic, asset, custom }
+
+enum AppVisualStyle { aurora, material }
 
 // ---- MAJOR ---
 // Theme State Representation
@@ -49,8 +51,10 @@ class ThemeState {
   final bool enableBlurToast;
   final HeroBannerType heroBannerType;
   final String? heroBannerPath;
+  final AppVisualStyle visualStyle;
   final bool isAdvancedBlurUnlocked;
   final bool isCardBlurWarningAccepted;
+  final bool isAuroraWarningDismissed;
 
   const ThemeState({
     required this.mode,
@@ -63,8 +67,10 @@ class ThemeState {
     this.enableBlurToast = true,
     this.heroBannerType = HeroBannerType.dynamic,
     this.heroBannerPath,
+    this.visualStyle = AppVisualStyle.aurora,
     this.isAdvancedBlurUnlocked = false,
     this.isCardBlurWarningAccepted = false,
+    this.isAuroraWarningDismissed = false,
   });
 
   // --- Sub
@@ -80,8 +86,10 @@ class ThemeState {
     bool? enableBlurToast,
     HeroBannerType? heroBannerType,
     String? heroBannerPath,
+    AppVisualStyle? visualStyle,
     bool? isAdvancedBlurUnlocked,
     bool? isCardBlurWarningAccepted,
+    bool? isAuroraWarningDismissed,
   }) {
     return ThemeState(
       mode: mode ?? this.mode,
@@ -94,10 +102,13 @@ class ThemeState {
       enableBlurToast: enableBlurToast ?? this.enableBlurToast,
       heroBannerType: heroBannerType ?? this.heroBannerType,
       heroBannerPath: heroBannerPath ?? this.heroBannerPath,
+      visualStyle: visualStyle ?? this.visualStyle,
       isAdvancedBlurUnlocked:
           isAdvancedBlurUnlocked ?? this.isAdvancedBlurUnlocked,
       isCardBlurWarningAccepted:
           isCardBlurWarningAccepted ?? this.isCardBlurWarningAccepted,
+      isAuroraWarningDismissed:
+          isAuroraWarningDismissed ?? this.isAuroraWarningDismissed,
     );
   }
 
@@ -124,6 +135,7 @@ class ThemeState {
   bool shouldBlur(BlurCategory category) {
     switch (category) {
       case BlurCategory.card:
+      case BlurCategory.subcard:
         return enableBlurCards;
       case BlurCategory.toast:
         return enableBlurToast;
@@ -150,6 +162,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
   static const _keyBlurToast = 'theme_blur_toast';
   static const _keyAdvancedUnlocked = 'theme_advanced_unlocked';
   static const _keyBlurWarningAccepted = 'theme_blur_warning_accepted';
+  static const _keyVisualStyle = 'theme_visual_style';
 
   late SharedPreferences _prefs;
   Timer? _saveTimer;
@@ -182,6 +195,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
       heroBannerType:
           HeroBannerType.values[_prefs.getInt('theme_hero_banner_type') ?? 0],
       heroBannerPath: _prefs.getString('theme_hero_banner_path'),
+      visualStyle: AppVisualStyle.values[_prefs.getInt(_keyVisualStyle) ?? 0],
       isAdvancedBlurUnlocked: _prefs.getBool(_keyAdvancedUnlocked) ?? false,
       isCardBlurWarningAccepted:
           _prefs.getBool(_keyBlurWarningAccepted) ?? false,
@@ -201,6 +215,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
     if (state.heroBannerPath != null) {
       await _prefs.setString('theme_hero_banner_path', state.heroBannerPath!);
     }
+    await _prefs.setInt(_keyVisualStyle, state.visualStyle.index);
     await _prefs.setBool(_keyAdvancedUnlocked, state.isAdvancedBlurUnlocked);
     await _prefs.setBool(
         _keyBlurWarningAccepted, state.isCardBlurWarningAccepted);
@@ -232,8 +247,9 @@ class ThemeNotifier extends Notifier<ThemeState> {
         blurSigma: 2.5,
         blurStyle: AppBlurStyle.liquid,
         enableBlurCards: false,
-        enableBlurDockStatus: true,
-        enableBlurToast: true,
+        enableBlurDockStatus: false,
+        enableBlurToast: false,
+        visualStyle: AppVisualStyle.material,
       );
     } else {
       state = state.copyWith(mode: mode);
@@ -244,13 +260,13 @@ class ThemeNotifier extends Notifier<ThemeState> {
   void setUseMonet(bool value) {
     _switchToDarkIfDefault();
     state = state.copyWith(useMonet: value);
-    _saveSettings();
+    _debouncedSave();
   }
 
   void setAccentColor(Color color) {
     _switchToDarkIfDefault();
     state = state.copyWith(accentColor: color, useMonet: false);
-    _saveSettings();
+    _debouncedSave();
   }
 
   void setBlurSigma(double sigma) {
@@ -267,24 +283,49 @@ class ThemeNotifier extends Notifier<ThemeState> {
 
   void toggleBlurCards(bool value) {
     _switchToDarkIfDefault();
+    // Blur is disabled in Aurora mode to protect the GPU
+    if (state.visualStyle == AppVisualStyle.aurora && value) return;
     state = state.copyWith(enableBlurCards: value);
     _saveSettings();
   }
 
   void toggleBlurDockStatus(bool value) {
     _switchToDarkIfDefault();
+    // Blur is disabled in Aurora mode to protect the GPU
+    if (state.visualStyle == AppVisualStyle.aurora && value) return;
     state = state.copyWith(enableBlurDockStatus: value);
     _saveSettings();
   }
 
   void toggleBlurToast(bool value) {
     _switchToDarkIfDefault();
+    // Blur is disabled in Aurora mode to protect the GPU
+    if (state.visualStyle == AppVisualStyle.aurora && value) return;
     state = state.copyWith(enableBlurToast: value);
     _saveSettings();
   }
 
   void setHeroBanner(HeroBannerType type, String? path) {
     state = state.copyWith(heroBannerType: type, heroBannerPath: path);
+    _saveSettings();
+  }
+
+  void setVisualStyle(AppVisualStyle style) {
+    _switchToDarkIfDefault();
+
+    // Performance Guard: Aurora + Blur = GPU Death
+    // If switching to Aurora, we MUST kill individual blur settings
+    if (style == AppVisualStyle.aurora) {
+      state = state.copyWith(
+        visualStyle: style,
+        enableBlurCards: false,
+        enableBlurDockStatus: false,
+        enableBlurToast: false,
+      );
+    } else {
+      state = state.copyWith(visualStyle: style);
+    }
+
     _saveSettings();
   }
 
@@ -296,6 +337,10 @@ class ThemeNotifier extends Notifier<ThemeState> {
   void acceptCardBlurWarning() {
     state = state.copyWith(isCardBlurWarningAccepted: true);
     _saveSettings();
+  }
+
+  void setAuroraWarningDismissed(bool dismissed) {
+    state = state.copyWith(isAuroraWarningDismissed: dismissed);
   }
 
   void _switchToDarkIfDefault() {
