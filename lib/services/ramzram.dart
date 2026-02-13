@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // ---- LOCAL ---
 import '../services/shell_services.dart';
+import '../utils/app_logger.dart';
 
 // ---- MAJOR ---
 // Memory Metric Containers
@@ -161,6 +162,11 @@ class RamMonitoringService {
       if (!_controller.isClosed) _controller.add(snapshot);
     } catch (e) {
       // Comment: Silent error handler to prevent UI flickering during shell warmups
+      // Only log as warning locally, do not auto-report
+      if (_initialized) {
+        // weak check to avoid log spam on dispose
+        logger.w("RamMonitor: $e"); // Optional: uncomment if needed for debugging
+      }
     }
   }
 

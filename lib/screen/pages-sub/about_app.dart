@@ -28,6 +28,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 // ---- LOCAL ---
 import '../../theme/theme_provider.dart';
+import '../../theme/rootify_background_provider.dart';
 import '../../utils/app_logger.dart';
 import '../statusbar/sb_aboutapp.dart';
 import '../../widgets/toast.dart';
@@ -81,8 +82,6 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
   }
 
   void _toggleView() => setState(() => _showBanner = !_showBanner);
-
-  // ... (existing _loadCredits, _launchUrl, _launchTelegramUser)
 
   Future<void> _loadCredits() async {
     try {
@@ -147,222 +146,214 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            // --- Sub
-            // Background Layer
-            Positioned.fill(
-              child: Container(
-                color: colorScheme.surface,
-              ),
-            ),
+        body: RootifySubBackground(
+          child: Stack(
+            children: [
+              // --- Sub
+              // Main Scrolling Content
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // About: Premium Header Space
+                  SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
 
-            // --- Sub
-            // Main Scrolling Content
-            CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // About: Premium Header Space
-                SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
+                  // About: Branding & Version Metadata
+                  SliverToBoxAdapter(
+                    child: FutureBuilder<PackageInfo>(
+                      future: _packageInfo,
+                      builder: (context, snapshot) {
+                        final version = snapshot.data?.version ?? "0.0.0";
+                        final build = snapshot.data?.buildNumber ?? "0";
 
-                // About: Branding & Version Metadata
-                SliverToBoxAdapter(
-                  child: FutureBuilder<PackageInfo>(
-                    future: _packageInfo,
-                    builder: (context, snapshot) {
-                      final version = snapshot.data?.version ?? "0.0.0";
-                      final build = snapshot.data?.buildNumber ?? "0";
-
-                      return AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 500),
-                        child: _showBanner
-                            ? GestureDetector(
-                                onTap: _toggleView,
-                                child: Container(
-                                  key: const ValueKey('banner'),
-                                  height: 200,
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(28),
-                                    image: const DecorationImage(
-                                      image: AssetImage(
-                                          'assets/banner/about-banner.png'),
-                                      fit: BoxFit.cover,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.3),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 10),
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 500),
+                          child: _showBanner
+                              ? GestureDetector(
+                                  onTap: _toggleView,
+                                  child: Container(
+                                    key: const ValueKey('banner'),
+                                    height: 200,
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(28),
+                                      image: const DecorationImage(
+                                        image: AssetImage(
+                                            'assets/banner/banner-aboutapp.png'),
+                                        fit: BoxFit.cover,
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            : Column(
-                                key: const ValueKey('branding'),
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  GestureDetector(
-                                    onTap: _handleLogoTap,
-                                    onLongPress: _toggleView,
-                                    child: SvgPicture.asset(
-                                      'assets/svg/logo.svg',
-                                      width: 85,
-                                      height: 85,
-                                      colorFilter: ColorFilter.mode(
-                                          colorScheme.primary, BlendMode.srcIn),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 20),
-                                  const Text(
-                                    "ROOTIFY",
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 4.0,
+                                )
+                              : Column(
+                                  key: const ValueKey('branding'),
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _handleLogoTap,
+                                      onLongPress: _toggleView,
+                                      child: SvgPicture.asset(
+                                        'assets/svg/logo.svg',
+                                        width: 85,
+                                        height: 85,
+                                        colorFilter: ColorFilter.mode(
+                                            colorScheme.primary,
+                                            BlendMode.srcIn),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        "Version $version ($build)",
+                                    const SizedBox(height: 20),
+                                    const Text(
+                                      "ROOTIFY",
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 4.0,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          "Version $version ($build)",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: colorScheme.onSurface
+                                                .withValues(alpha: 0.5),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          onPressed: _toggleView,
+                                          icon: const Icon(LucideIcons.image,
+                                              size: 16),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 32),
+                                      child: Text(
+                                        "an Root All In One application for Tweaking, Tuning Performance, AI Management on Your Device, Monitor System Resources, and More",
+                                        textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          height: 1.5,
                                           color: colorScheme.onSurface
-                                              .withValues(alpha: 0.5),
+                                              .withValues(alpha: 0.6),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        onPressed: _toggleView,
-                                        icon: const Icon(LucideIcons.image,
-                                            size: 16),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 32),
-                                    child: Text(
-                                      "an Root All In One application for Tweaking, Tuning Performance, AI Management on Your Device, Monitor System Resources, and More",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        height: 1.5,
-                                        color: colorScheme.onSurface
-                                            .withValues(alpha: 0.6),
-                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                      );
-                    },
-                  ),
-                ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                // About: Developer Profile
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: DeveloperSection(
-                      onTelegramTap: _launchTelegramUser,
+                                  ],
+                                ),
+                        );
+                      },
                     ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                // About: Special Thanks (Dynamic)
-                if (specialThanksItems.isNotEmpty) ...[
+                  const SliverToBoxAdapter(child: SizedBox(height: 25)),
+
+                  // About: Developer Profile
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SpecialThanksSection(
-                        items: specialThanksItems,
+                      child: DeveloperSection(
                         onTelegramTap: _launchTelegramUser,
                       ),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                ],
+                  const SliverToBoxAdapter(child: SizedBox(height: 25)),
 
-                // About: Credits (Dynamic)
-                if (generalCreditsItems.isNotEmpty) ...[
+                  // About: Special Thanks (Dynamic)
+                  if (specialThanksItems.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: SpecialThanksSection(
+                          items: specialThanksItems,
+                          onTelegramTap: _launchTelegramUser,
+                        ),
+                      ),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 25)),
+                  ],
+
+                  // About: Credits (Dynamic)
+                  if (generalCreditsItems.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: CreditsSection(
+                          items: generalCreditsItems,
+                          onTelegramTap: _launchTelegramUser,
+                        ),
+                      ),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 25)),
+                  ],
+
+                  // About: Ecosystem & Support Links
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: CreditsSection(
-                        items: generalCreditsItems,
-                        onTelegramTap: _launchTelegramUser,
+                      child: EcosystemSection(
+                        onSourceCodeTap: () => _launchUrl(
+                            'https://github.com/RootifyProject/rootify'),
+                        onSupportTap: () =>
+                            _launchUrl('https://t.me/AbyRootify'),
                       ),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 25)),
+
+                  // About: Legal & Attribution Links
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: LegalSection(
+                        onEulaTap: () => _navigateToDetails(
+                          context,
+                          "Rootify EULA",
+                          'assets/license/LICENSE-Rootify',
+                          LucideIcons.gavel,
+                        ),
+                        onPrivacyPolicyTap: () => _navigateToDetails(
+                          context,
+                          "Privacy Policy",
+                          'assets/license/PRIVACY-POLICY-Rootify',
+                          LucideIcons.shield,
+                        ),
+                        onOssLicensesTap: () =>
+                            showLicensePage(context: context),
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 80)),
                 ],
+              ),
 
-                // About: Ecosystem & Support Links
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: EcosystemSection(
-                      onSourceCodeTap: () => _launchUrl(
-                          'https://github.com/RootifyProject/rootify'),
-                      onSupportTap: () => _launchUrl('https://t.me/AbyRootify'),
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                // About: Legal & Attribution Links
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: LegalSection(
-                      onEulaTap: () => _navigateToDetails(
-                        context,
-                        "Rootify EULA",
-                        'assets/license/LICENSE-Rootify',
-                        LucideIcons.gavel,
-                      ),
-                      onLicenseTap: () => _navigateToDetails(
-                        context,
-                        "Laya Kernel Tuner License",
-                        'assets/license/LICENSE-LayaKernelTuner',
-                        LucideIcons.scale,
-                      ),
-                      onPrivacyPolicyTap: () => _navigateToDetails(
-                        context,
-                        "Privacy Policy",
-                        'assets/license/PRIVACY-POLICY-Rootify',
-                        LucideIcons.shield,
-                      ),
-                      onOssLicensesTap: () => showLicensePage(context: context),
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 80)),
-              ],
-            ),
-
-            // --- Sub
-            // Floating Status Bar
-            Positioned(
-              top: topPadding + 10,
-              left: 0,
-              right: 0,
-              child: const AboutAppStatusBar(),
-            ),
-          ],
+              // --- Sub
+              // Floating Status Bar
+              Positioned(
+                top: topPadding + 10,
+                left: 0,
+                right: 0,
+                child: const AboutAppStatusBar(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -384,7 +375,3 @@ class _AppInfoPageState extends ConsumerState<AppInfoPage> {
     );
   }
 }
-
-// ---- SUPPORTING ---
-
-// Clean Link Tile for External Resource Navigation

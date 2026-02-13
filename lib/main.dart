@@ -17,12 +17,14 @@
 // ---- SYSTEM ---
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
 
 // ---- EXTERNAL ---
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // ---- LOCAL ---
 import 'theme/theme_provider.dart';
@@ -33,6 +35,8 @@ import 'screen/splashs/splash_screen.dart';
 import 'screen/overlays/fpsmeter_overlay.dart';
 import 'utils/app_logger.dart';
 import 'services/app_tracker_service.dart';
+import 'services/error_reporting_service.dart';
+import 'animations/master_transition.dart';
 
 // ---- MAJOR ---
 // Primary Application Orchestrator
@@ -43,6 +47,7 @@ import 'services/app_tracker_service.dart';
 @pragma("vm:entry-point")
 void overlayMain() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: "config.env");
   final prefs = await SharedPreferences.getInstance();
 
   runApp(
@@ -56,9 +61,14 @@ void overlayMain() async {
 }
 
 // --- Sub
+// Global Provider Access (Critical for Background Reporting)
+late final ProviderContainer globalContainer;
+
+// --- Sub
 // Main Entry Point (Main UI)
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: "config.env");
 
   final prefs = await SharedPreferences.getInstance();
   final debugEnabled = prefs.getBool('debug_enabled') ?? false;
@@ -78,11 +88,23 @@ void main() async {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
+  // Comment: 4. Initialize Global ProviderContainer
+  globalContainer = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+    ],
+  );
+
+  // Comment: 5. Global Async Error Handling (Hooked to Telegram)
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logger.e("Global Platform Error", error, stack);
+    ErrorReportingService.handleStatic(error, stack);
+    return true; // Error handled
+  };
+
   runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
+    UncontrolledProviderScope(
+      container: globalContainer,
       child: const RootifyApp(),
     ),
   );
@@ -138,34 +160,52 @@ class RootifyApp extends ConsumerWidget {
           // Comment: Synchronize Theming Engine
           theme: AppLightTheme.theme(
             themeState.accentColor,
+            visualStyle: themeState.visualStyle,
             colorScheme: themeState.useMonet ? lightDynamic : null,
           ),
           darkTheme: AppDarkTheme.theme(
             themeState.accentColor,
+            visualStyle: themeState.visualStyle,
             colorScheme: themeState.useMonet ? darkDynamic : null,
           ),
           themeMode: themeState.flutterThemeMode,
 
-          // Comment: System Region Annotation for Transparency
-          builder: (context, child) {
-            final brightness = Theme.of(context).brightness;
-            return AnnotatedRegion<SystemUiOverlayStyle>(
-              value: SystemUiOverlayStyle(
-                statusBarColor: Colors.transparent,
-                systemNavigationBarColor: Colors.transparent,
-                statusBarIconBrightness: brightness == Brightness.dark
-                    ? Brightness.light
-                    : Brightness.dark,
-                systemNavigationBarIconBrightness: brightness == Brightness.dark
-                    ? Brightness.light
-                    : Brightness.dark,
-              ),
-              child: child!,
-            );
-          },
-
           onGenerateRoute: (settings) => null,
           home: const SplashScreen(),
+
+          // Comment: Hook into UI-level errors with access to context & ref
+          builder: (context, child) {
+            final brightness = themeState.flutterThemeMode == ThemeMode.dark ||
+                    (themeState.flutterThemeMode == ThemeMode.system &&
+                        MediaQuery.of(context).platformBrightness ==
+                            Brightness.dark)
+                ? Brightness.dark
+                : Brightness.light;
+
+            // Detail: Force global error catch for UI builder
+            FlutterError.onError = (details) {
+              FlutterError.presentError(details);
+              ErrorReportingService.handle(
+                  context, ref, details.exception, details.stack);
+            };
+
+            return MasterTransition(
+              child: AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle(
+                  statusBarColor: Colors.transparent,
+                  systemNavigationBarColor: Colors.transparent,
+                  statusBarIconBrightness: brightness == Brightness.dark
+                      ? Brightness.light
+                      : Brightness.dark,
+                  systemNavigationBarIconBrightness:
+                      brightness == Brightness.dark
+                          ? Brightness.light
+                          : Brightness.dark,
+                ),
+                child: child!,
+              ),
+            );
+          },
         );
       },
     );

@@ -33,6 +33,7 @@ class VendorDetails {
   final String board;
   final String hardwareChipset;
   final String kernel;
+  final String graphics;
   final String arch;
 
   const VendorDetails({
@@ -45,6 +46,7 @@ class VendorDetails {
     required this.board,
     required this.hardwareChipset,
     required this.kernel,
+    required this.graphics,
     required this.arch,
   });
 
@@ -59,6 +61,7 @@ class VendorDetails {
       board: 'Unknown',
       hardwareChipset: 'Unknown',
       kernel: 'Unknown',
+      graphics: 'Unknown',
       arch: 'Unknown',
     );
   }
@@ -105,6 +108,8 @@ class VendorInfoService {
       final kernel = _val(lines, 6);
       final vendorChip = _val(lines, 7);
       final hwChip = _val(lines, 8);
+      final graphics = _val(lines, 9);
+      final arch = _val(lines, 10);
 
       final details = VendorDetails(
         manufacturer: manufacturer,
@@ -116,7 +121,8 @@ class VendorInfoService {
         board: vendorChip.toUpperCase(),
         hardwareChipset: hwChip.isEmpty ? vendorChip.toUpperCase() : hwChip,
         kernel: kernel,
-        arch: _val(lines, 9),
+        graphics: graphics,
+        arch: arch,
       );
 
       logger.d("VendorInfo: Identification successful for ${details.model}");

@@ -26,6 +26,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../dock/dock.dart';
 import '../statusbar/sb_dashboard.dart';
 import '../widgets/cpumonitor.dart';
+import '../../theme/rootify_background_provider.dart';
 import '../../providers/statusbar_provider.dart';
 import 'device_info.dart';
 import 'tweaks.dart';
@@ -58,15 +59,6 @@ class _DashboardState extends ConsumerState<Dashboard> {
       _currentIndex = index;
     });
 
-    // Jump without animation for snappy feel
-    Future.delayed(const Duration(milliseconds: 50), () {
-      if (mounted) {
-        setState(() {
-          _isMenuTapped = false;
-        });
-      }
-    });
-
     // Notify Status Bar of context change
     ref.read(statusBarProvider.notifier).updatePage(index);
   }
@@ -78,7 +70,6 @@ class _DashboardState extends ConsumerState<Dashboard> {
     // --- Sub
     // Context & Theme
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
     final topPadding = MediaQuery.of(context).padding.top;
 
@@ -93,126 +84,53 @@ class _DashboardState extends ConsumerState<Dashboard> {
         systemNavigationBarDividerColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: Colors.transparent,
         extendBody: true,
-        body: Stack(
-          children: [
-            // --- Sub
-            // 1. Dynamic Mesh Background Layer
-            Positioned.fill(
-              child: AnimatedContainer(
-                duration: const Duration(seconds: 1),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.surface,
-                      colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainerHigh,
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Detail: Primary Glow
-                    Positioned(
-                      top: -100,
-                      right: -100,
-                      child: Container(
-                        width: 400,
-                        height: 400,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.primary.withValues(alpha: 0.1),
-                              colorScheme.primary.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(-30, 30),
-                          end: const Offset(30, -30),
-                          duration: 12.seconds),
-                    ),
-                    // Detail: Secondary Glow
-                    Positioned(
-                      bottom: -80,
-                      left: -80,
-                      child: Container(
-                        width: 350,
-                        height: 350,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.secondary.withValues(alpha: 0.08),
-                              colorScheme.secondary.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(30, -30),
-                          end: const Offset(-30, 30),
-                          duration: 10.seconds),
-                    ),
-                  ],
-                ),
+        body: RootifyMainBackground(
+          child: Stack(
+            children: [
+              // --- Sub
+              // 2. Main Workspace View
+              Positioned.fill(
+                child: _buildCurrentPage(context),
               ),
-            ),
 
-            // --- Sub
-            // 2. Main Workspace View
-            Positioned.fill(
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: _isMenuTapped ? 0.0 : 1.0,
-                child: AnimatedScale(
-                  duration: const Duration(milliseconds: 150),
-                  scale: _isMenuTapped ? 0.98 : 1.0,
-                  curve: Curves.easeOutCubic,
-                  child: _buildCurrentPage(context),
+              // --- Sub
+              // 3. Global Dashboard Status Bar
+              Positioned(
+                top: topPadding + 10,
+                left: 0,
+                right: 0,
+                child: const DashboardStatusBar(),
+              ).animate().fadeIn(duration: 600.ms, delay: 200.ms).slideY(
+                  begin: -0.2,
+                  end: 0,
+                  duration: 600.ms,
+                  curve: Curves.easeOutBack),
+
+              // --- Sub
+              // 4. Floating Navigation Dock
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 24,
+                child: RootifyDock(
+                  selectedIndex: _currentIndex,
+                  isTapped: _isMenuTapped,
+                  onHomeTap: () => _onDockTap(0),
+                  onTweaksTap: () => _onDockTap(1),
+                  onAddonsTap: () => _onDockTap(2),
+                  onUtilsTap: () => _onDockTap(3),
+                  onDeviceInfoTap: () => _onDockTap(4),
+                  onSettingsTap: () => _onDockTap(5),
                 ),
-              ),
-            ),
-
-            // --- Sub
-            // 3. Global Dashboard Status Bar
-            Positioned(
-              top: topPadding + 10,
-              left: 0,
-              right: 0,
-              child: const DashboardStatusBar(),
-            ).animate().fadeIn(duration: 600.ms, delay: 200.ms).slideY(
-                begin: -0.2,
-                end: 0,
-                duration: 600.ms,
-                curve: Curves.easeOutBack),
-
-            // --- Sub
-            // 4. Floating Navigation Dock
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 24,
-              child: RootifyDock(
-                selectedIndex: _currentIndex,
-                isTapped: _isMenuTapped,
-                onHomeTap: () => _onDockTap(0),
-                onTweaksTap: () => _onDockTap(1),
-                onAddonsTap: () => _onDockTap(2),
-                onUtilsTap: () => _onDockTap(3),
-                onDeviceInfoTap: () => _onDockTap(4),
-                onSettingsTap: () => _onDockTap(5),
-              ),
-            ).animate().fadeIn(duration: 600.ms, delay: 400.ms).slideY(
-                begin: 0.5,
-                end: 0,
-                duration: 600.ms,
-                curve: Curves.easeOutBack),
-          ],
+              ).animate().fadeIn(duration: 600.ms, delay: 400.ms).slideY(
+                  begin: 0.5,
+                  end: 0,
+                  duration: 600.ms,
+                  curve: Curves.easeOutBack),
+            ],
+          ),
         ),
       ),
     );

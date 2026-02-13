@@ -39,6 +39,7 @@ class OsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RootifyCard(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       title: "Operating System",
       icon: LucideIcons.code2,
       child: Column(

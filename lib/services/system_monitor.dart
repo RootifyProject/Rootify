@@ -47,9 +47,7 @@ final systemMonitorProvider =
       'dumpsys SurfaceFlinger --timestats -clear';
 
   while (true) {
-    // Comment: Balanced Polling (1 second) to minimize battery drain
     await Future.delayed(const Duration(seconds: 1));
-
     try {
       final output = await shell.exec(cmd, canSkip: true);
       if (output.isEmpty) continue;

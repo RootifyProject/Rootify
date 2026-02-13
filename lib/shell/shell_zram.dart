@@ -61,13 +61,39 @@ class ShellZramService extends BaseShellService {
   Future<int> getZramSize() async {
     logger.d("ZramShell: Reading ZRAM partition size...");
     try {
+      // First check if zram device exists
+      final deviceCheck = await exec(
+          'test -b /dev/block/zram0 && echo YES || echo NO',
+          silent: true);
+      if (!deviceCheck.contains('YES')) {
+        logger.w("ZramShell: ZRAM device not found");
+        return 0;
+      }
+
       final output =
           await exec('cat /sys/block/zram0/disksize 2>/dev/null', silent: true);
-      if (output.isEmpty) return 0;
+      logger.d("ZramShell: disksize output: '$output'");
+
+      if (output.isEmpty) {
+        logger.w("ZramShell: disksize file is empty");
+        // Try to read from persistence file
+        final persistedSize = await exec(
+            'cat /data/adb/modules/rootify/data/ZRAM-SIZE 2>/dev/null',
+            silent: true);
+        if (persistedSize.isNotEmpty) {
+          final mb = int.tryParse(persistedSize.trim()) ?? 0;
+          logger.i("ZramShell: Using persisted size: ${mb}MB");
+          return mb;
+        }
+        return 0;
+      }
+
       final bytes = int.tryParse(output.trim()) ?? 0;
-      return bytes ~/ (1024 * 1024);
-    } catch (e) {
-      logger.e("ZramShell: Size read error", e);
+      final mb = bytes ~/ (1024 * 1024);
+      logger.d("ZramShell: Parsed size: $mb MB ($bytes bytes)");
+      return mb;
+    } catch (e, stack) {
+      logger.e("ZramShell: Size read error", e, stack, true);
       return 0;
     }
   }
@@ -83,42 +109,28 @@ class ShellZramService extends BaseShellService {
         return (int.tryParse(parts[1]) ?? 0) ~/ 1024;
       }
       return 0;
-    } catch (_) {
+    } catch (e, stack) {
+      logger.e("ZramShell: Total RAM read error", e, stack, true);
       return 0;
     }
   }
 
   // --- Sub
-  // Atomic Parameter Management
   Future<void> applyParameters({
     required int sizeMB,
     required String algo,
   }) async {
-    if (sizeMB < 0) return;
+    const modPath = "/data/adb/modules/rootify/shell";
 
-    final bytes = sizeMB * 1024 * 1024;
-    logger.i(
-        "ZramShell: Applying ZRAM configuration -> Size: ${sizeMB}MB, Algo: $algo");
+    // 1. Use the atomic config script
+    final result = await exec("sh $modPath/ZRAM-CONFIG.sh $sizeMB $algo");
 
-    // Comment: Ordering is critical for ZRAM kernel stability
-    final cmd = '''
-      # 1. Disable current swap usage
-      swapoff /dev/block/zram0 2>/dev/null || true
-      
-      # 2. Reset device for architecture changes
-      echo 1 > /sys/block/zram0/reset 2>/dev/null
-      
-      # 3. Configure compression algorithm (pre-sizing requirement)
-      echo "$algo" > /sys/block/zram0/comp_algorithm 2>/dev/null
-      
-      # 4. Define and Format partition
-      if [ $bytes -gt 0 ]; then
-        echo $bytes > /sys/block/zram0/disksize 2>/dev/null
-        mkswap /dev/block/zram0 2>/dev/null
-        swapon /dev/block/zram0 2>/dev/null
-      fi
-    ''';
-    await exec(cmd);
+    logger.i("ZramShell: Config Result -> $result");
+
+    if (result.contains("ERROR")) {
+      logger.e(
+          "ZramShell: Atomic application failed: $result", null, null, true);
+    }
   }
 
   // --- Sub
@@ -135,8 +147,8 @@ class ShellZramService extends BaseShellService {
           .split(' ')
           .where((s) => s.trim().isNotEmpty)
           .toList();
-    } catch (e) {
-      logger.e("ZramShell: Algorithm fetch error", e);
+    } catch (e, stack) {
+      logger.e("ZramShell: Algorithm fetch error", e, stack, true);
       return [];
     }
   }

@@ -23,6 +23,9 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 
+// ---- LOCAL ---
+import '../services/error_reporting_service.dart';
+
 // ---- MAJOR ---
 // Global Application Logger
 // Manages filesystem persistence, stream broadcasting, and console output.
@@ -77,8 +80,15 @@ class AppLogger {
 
   void i(String m) => _log("INFO", m, "32"); // Comment: Success Green
   void w(String m) => _log("WARN", m, "33"); // Comment: Amber Warning
-  void e(String m, [Object? err, StackTrace? st]) => _log(
-      "ERROR", "$m ${err ?? ''} ${st ?? ''}", "31"); // Comment: Critical Red
+
+  void e(String m, [Object? err, StackTrace? st, bool report = false]) {
+    _log("ERROR", "$m ${err ?? ''} ${st ?? ''}", "31"); // Comment: Critical Red
+
+    // Auto-Report Logic
+    if (report) {
+      ErrorReportingService.handleStatic(err ?? m, st);
+    }
+  }
 
   // --- Sub
   // Core Dispatcher

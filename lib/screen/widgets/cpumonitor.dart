@@ -66,6 +66,7 @@ class CpuMonitor extends ConsumerWidget {
             (snapshot.cores.length / 2).ceil().clamp(2, 4);
 
         return RootifyCard(
+          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
           title: "CPU MONITOR",
           subtitle: "REAL-TIME CPU MONITORING",
           icon: LucideIcons.cpu,

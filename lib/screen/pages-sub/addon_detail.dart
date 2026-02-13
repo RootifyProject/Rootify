@@ -21,13 +21,13 @@ import 'package:flutter/services.dart';
 // ---- EXTERNAL ---
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 // ---- LOCAL ---
 import '../../providers/addons_provider.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/toast.dart';
 import 'details.dart';
+import '../../theme/rootify_background_provider.dart';
 
 // ---- MAJOR ---
 // Addon Detailed Description Page
@@ -57,7 +57,6 @@ class AddonDetailPage extends ConsumerWidget {
     // --- Sub
     // Theme & Context
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -71,302 +70,241 @@ class AddonDetailPage extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            // --- Sub
-            // 1. Mirrored Dynamic Mesh Background
-            Positioned.fill(
-              child: AnimatedContainer(
-                duration: const Duration(seconds: 1),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.surface,
-                      colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainerHigh,
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Detail: Primary Glow
-                    Positioned(
-                      top: -120,
-                      left: -120,
-                      child: Container(
-                        width: 450,
-                        height: 450,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.primary.withValues(alpha: 0.15),
-                              colorScheme.primary.withValues(alpha: 0.0),
-                            ],
-                          ),
+        body: RootifySubBackground(
+          child: Stack(
+            children: [
+              // --- Sub
+              // 1. Main Scrolling Content
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Detail: Premium Stretching Header
+                  SliverAppBar(
+                    expandedHeight: 200,
+                    pinned: true,
+                    stretch: true,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    leading: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: CircleAvatar(
+                        backgroundColor:
+                            isDarkMode ? Colors.black26 : Colors.white54,
+                        child: IconButton(
+                          icon: const Icon(LucideIcons.arrowLeft, size: 20),
+                          onPressed: () => Navigator.pop(context),
                         ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(30, -30),
-                          end: const Offset(-30, 30),
-                          duration: 12.seconds),
-                    ),
-                    // Detail: Secondary Glow
-                    Positioned(
-                      bottom: -80,
-                      right: -80,
-                      child: Container(
-                        width: 350,
-                        height: 350,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.secondary.withValues(alpha: 0.1),
-                              colorScheme.secondary.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(-30, 30),
-                          end: const Offset(30, -30),
-                          duration: 10.seconds),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // --- Sub
-            // 2. Main Scrolling Content
-            CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // Detail: Premium Stretching Header
-                SliverAppBar(
-                  expandedHeight: 200,
-                  pinned: true,
-                  stretch: true,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  leading: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircleAvatar(
-                      backgroundColor:
-                          isDarkMode ? Colors.black26 : Colors.white54,
-                      child: IconButton(
-                        icon: const Icon(LucideIcons.arrowLeft, size: 20),
-                        onPressed: () => Navigator.pop(context),
                       ),
                     ),
-                  ),
-                  flexibleSpace: FlexibleSpaceBar(
-                    stretchModes: const [
-                      StretchMode.zoomBackground,
-                      StretchMode.blurBackground,
-                    ],
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Center(
-                          child: Hero(
-                            tag: "addon_icon_${config.id}",
-                            child: Icon(
-                              config.icon,
-                              size: 80,
-                              color: theme.primaryColor.withValues(alpha: 0.4),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          height: 50,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  theme.colorScheme.surface
-                                      .withValues(alpha: 0.8),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                    flexibleSpace: FlexibleSpaceBar(
+                      stretchModes: const [
+                        StretchMode.zoomBackground,
+                        StretchMode.blurBackground,
                       ],
-                    ),
-                  ),
-                ),
-
-                // Detail: Information Density Section
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Sub Detail: Title & Version Pill
-                        Text(
-                          config.name.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Center(
+                            child: Hero(
+                              tag: "addon_icon_${config.id}",
+                              child: Icon(
+                                config.icon,
+                                size: 80,
                                 color:
-                                    theme.primaryColor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
+                                    theme.primaryColor.withValues(alpha: 0.4),
                               ),
-                              child: Text(
-                                config.version,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.primaryColor,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: 50,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    theme.colorScheme.surface
+                                        .withValues(alpha: 0.8),
+                                  ],
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Sub Detail: Status Dashboard Card
-                        StatusCard(
-                          isRunning: isRunning,
-                          pid: pid,
-                          isModuleMode: isModuleMode,
-                          theme: theme,
-                          isDarkMode: isDarkMode,
-                          ref: ref,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Sub Detail: Boot Persistence Setting
-                        BootSettingCard(
-                          config: config,
-                          theme: theme,
-                          isDarkMode: isDarkMode,
-                          ref: ref,
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Sub Detail: Description Area
-                        const SectionTitle(title: "ABOUT"),
-                        const SizedBox(height: 12),
-                        Text(
-                          config.longDescription,
-                          style: TextStyle(
-                            fontSize: 15,
-                            height: 1.6,
-                            color: isDarkMode ? Colors.white70 : Colors.black87,
                           ),
-                        ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-                        const SizedBox(height: 32),
+                  // Detail: Information Density Section
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Sub Detail: Title & Version Pill
+                          Text(
+                            config.name.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color:
+                                      theme.primaryColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  config.version,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
 
-                        // Sub Detail: Feature Checklist
-                        const SectionTitle(title: "FEATURES"),
-                        const SizedBox(height: 16),
-                        ...config.features
-                            .map((f) => FeatureItem(feature: f, theme: theme)),
+                          // Sub Detail: Status Dashboard Card
+                          StatusCard(
+                            isRunning: isRunning,
+                            pid: pid,
+                            isModuleMode: isModuleMode,
+                            theme: theme,
+                            isDarkMode: isDarkMode,
+                            ref: ref,
+                          ),
 
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 16),
 
-                        // Sub Detail: Developer Branding/Credits
-                        CreditCard(
-                          author: config.author,
-                          license: config.license,
-                          theme: theme,
-                          isDarkMode: isDarkMode,
-                          ref: ref,
-                          onLicenseTap: () => _showLicensePage(
-                              context, config.name, config.licensePath),
-                        ),
+                          // Sub Detail: Boot Persistence Setting
+                          BootSettingCard(
+                            config: config,
+                            theme: theme,
+                            isDarkMode: isDarkMode,
+                            ref: ref,
+                          ),
 
-                        const SizedBox(height: 100),
+                          const SizedBox(height: 32),
+
+                          // Sub Detail: Description Area
+                          const SectionTitle(title: "ABOUT"),
+                          const SizedBox(height: 12),
+                          Text(
+                            config.longDescription,
+                            style: TextStyle(
+                              fontSize: 15,
+                              height: 1.6,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // Sub Detail: Feature Checklist
+                          const SectionTitle(title: "FEATURES"),
+                          const SizedBox(height: 16),
+                          ...config.features.map(
+                              (f) => FeatureItem(feature: f, theme: theme)),
+
+                          const SizedBox(height: 32),
+
+                          // Sub Detail: Developer Branding/Credits
+                          CreditCard(
+                            author: config.author,
+                            license: config.license,
+                            theme: theme,
+                            isDarkMode: isDarkMode,
+                            ref: ref,
+                            onLicenseTap: () => _showLicensePage(
+                                context, config.name, config.licensePath),
+                          ),
+
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // --- Sub
+              // 3. Floating Bottom Performance Action Bar
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        theme.colorScheme.surface.withValues(alpha: 0.0),
+                        theme.colorScheme.surface.withValues(alpha: 0.95),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-
-            // --- Sub
-            // 3. Floating Bottom Performance Action Bar
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      theme.colorScheme.surface.withValues(alpha: 0.0),
-                      theme.colorScheme.surface.withValues(alpha: 0.95),
+                  child: Row(
+                    children: [
+                      // Detail: Contextual Log Access
+                      if (isRunning && !isProcessing)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: OutlinedButton(
+                              onPressed: onLog,
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 18),
+                                side: BorderSide(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.5),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(28)),
+                                backgroundColor: theme
+                                    .colorScheme.surfaceContainer
+                                    .withValues(alpha: 0.5),
+                              ),
+                              child: Icon(LucideIcons.fileText,
+                                  color: theme.colorScheme.primary),
+                            ),
+                          ),
+                        ),
+                      // Detail: Primary Service Controller
+                      Expanded(
+                        flex: 3,
+                        child: AddonActionButton(
+                          label: isRunning ? "STOP SERVICE" : "RUN SERVICE",
+                          onPressed: isProcessing ? null : onAction,
+                          isRunning: isRunning,
+                          isProcessing: isProcessing,
+                          theme: theme,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                child: Row(
-                  children: [
-                    // Detail: Contextual Log Access
-                    if (isRunning && !isProcessing)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 16),
-                          child: OutlinedButton(
-                            onPressed: onLog,
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              side: BorderSide(
-                                color: theme.colorScheme.outlineVariant
-                                    .withValues(alpha: 0.5),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(28)),
-                              backgroundColor: theme
-                                  .colorScheme.surfaceContainer
-                                  .withValues(alpha: 0.5),
-                            ),
-                            child: Icon(LucideIcons.fileText,
-                                color: theme.colorScheme.primary),
-                          ),
-                        ),
-                      ),
-                    // Detail: Primary Service Controller
-                    Expanded(
-                      flex: 3,
-                      child: AddonActionButton(
-                        label: isRunning ? "STOP SERVICE" : "RUN SERVICE",
-                        onPressed: isProcessing ? null : onAction,
-                        isRunning: isRunning,
-                        isProcessing: isProcessing,
-                        theme: theme,
-                      ),
-                    ),
-                  ],
-                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

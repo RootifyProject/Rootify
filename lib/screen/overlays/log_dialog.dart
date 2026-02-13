@@ -89,8 +89,8 @@ class _LogOverlayState extends State<LogOverlay> {
     while (!_isDisposed) {
       await Future.delayed(const Duration(seconds: 1));
       if (_isDisposed) break;
-
       final newLogs = await widget.onRefresh!();
+
       if (!_isDisposed && newLogs != _currentLogs) {
         setState(() {
           _currentLogs = newLogs;

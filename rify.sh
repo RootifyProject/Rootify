@@ -27,16 +27,6 @@ check_environment() {
         exit 1
     fi
     
-    # Check Java/JDK
-    if [ -z "$JAVA_HOME" ]; then
-        echo "Warning: JAVA_HOME is not set. Gradle might fail."
-    else
-        JAVA_VER=$($JAVA_HOME/bin/java -version 2>&1 | head -n 1)
-        echo "JDK Info: $JAVA_VER"
-        if [[ ! "$JAVA_VER" == *"17"* ]]; then
-            echo "Warning: JDK 17 is recommended. Detected different version."
-        fi
-    fi
     echo "Environment OK."
     echo "----------------------------------"
 }

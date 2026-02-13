@@ -16,6 +16,7 @@ migrate_working_dir/
 *.iml
 *.ipr
 *.iws
+*properties
 .idea/
 
 # The .vscode folder contains launch configuration and tasks you configure in
@@ -43,13 +44,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-/android/app/version.properties
-/android/key.properties
+/android/app/key.properties
+/android/app/src/version.properties
 
 # Third Party Modules
-/RiProG Thermal Universal 8.1.0/
-/Laya.BatteryMonitor.Module.V4.5-stable-release/
-/Laya.Kernel.Tuner.V6.0-stable-release/
+/RiProG*/
+/Laya*/
+/example/
 
 # App Data
 appData/
+
+# Environment Variables
+config.env
+.env.keys

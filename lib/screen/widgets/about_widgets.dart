@@ -86,6 +86,7 @@ class AboutContactCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return RootifyCard(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       onTap: onTap,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

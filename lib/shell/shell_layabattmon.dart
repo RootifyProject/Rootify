@@ -18,8 +18,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // ---- LOCAL ---
-import '../shell/base_shell.dart';
-import '../shell/shellsession.dart';
+import 'base_shell.dart';
+import 'shellsession.dart';
 import '../utils/app_logger.dart';
 
 // ---- MAJOR ---
@@ -47,19 +47,19 @@ class LayaBattmonShellService extends BaseShellService {
 
   Future<int?> getPID(String binName, String pattern) async {
     try {
-      // Comment: Try pidof (highest priority/performance)
+      // Try pidof (highest priority/performance)
       final pidof = await exec("pidof $binName", silent: true);
       if (pidof.trim().isNotEmpty) {
         return int.tryParse(pidof.trim().split(' ')[0]);
       }
 
-      // Comment: Try pgrep (secondary for pattern-based discovery)
+      // Try pgrep (secondary for pattern-based discovery)
       final pgrep = await exec("pgrep -f \"$pattern\"", silent: true);
       if (pgrep.trim().isNotEmpty) {
         return int.tryParse(pgrep.trim().split('\n')[0]);
       }
 
-      // Comment: Try ps (standard fallback for restricted kernels)
+      // Try ps (standard fallback for restricted kernels)
       final ps = await exec("ps -A | grep -i \"$pattern\" | grep -v grep",
           silent: true);
       if (ps.trim().isNotEmpty) {
@@ -94,59 +94,72 @@ class LayaBattmonShellService extends BaseShellService {
   // --- Sub
   // Private Bridge Utilities
   Future<void> _startBinary(String binName) async {
-    final path = "/data/data/com.aby.rootify/files/bin/$binName";
-    final logDir = "/data/data/com.aby.rootify/files/logs/";
-    final logFile = "$logDir$binName.log";
-
-    // Comment: Chained setup and execution to minimize bridge latency
-    await exec(
-        "mkdir -p $logDir && chmod +x $path && ($path > $logFile 2>&1 &)",
-        silent: true);
+    final wrapperPath = "/data/adb/modules/rootify/shell/BATTMON.sh";
+    final cmd = "sh $wrapperPath";
+    try {
+      await exec(cmd, silent: true);
+    } catch (e, st) {
+      logger.e("LayaBMShell: Start failed", e, st, true);
+      rethrow;
+    }
   }
 
   Future<void> _stopProcess(String binName, String pattern) async {
-    // Comment: Staged termination sequence (SIGKILL)
-    await exec("pkill -9 -f \"$pattern\"");
-    await exec("killall -9 $binName 2>/dev/null || true");
+    try {
+      // Staged termination sequence (SIGKILL)
+      await exec("pkill -9 -f \"$pattern\"");
+      await exec("killall -9 $binName 2>/dev/null || true");
 
-    final pids = await exec("pgrep -f \"$pattern\"");
-    if (pids.trim().isNotEmpty) {
-      for (final pid in pids.split('\n')) {
-        if (pid.trim().isNotEmpty) {
-          await exec("kill -9 ${pid.trim()} 2>/dev/null || true");
+      final pids = await exec("pgrep -f \"$pattern\"");
+      if (pids.trim().isNotEmpty) {
+        for (final pid in pids.split('\n')) {
+          if (pid.trim().isNotEmpty) {
+            await exec("kill -9 ${pid.trim()} 2>/dev/null || true");
+          }
         }
       }
+    } catch (e, st) {
+      logger.e("LayaBMShell: Stop failed", e, st, true);
     }
   }
 
   Future<String> _getLogs(String binName, String tag) async {
-    final logPath = "/data/data/com.aby.rootify/files/logs/$binName.log";
+    final logPath = "/data/adb/modules/rootify/logs/log-laya-battmon.log";
 
-    // Comment: 1. Attempt retrieval from dedicated filesystem log
-    if ((await exec("test -f $logPath && echo 'YES'")).contains("YES")) {
-      final content = await exec("cat $logPath");
-      if (content.trim().isNotEmpty) return content;
+    try {
+      // 1. Attempt retrieval from dedicated filesystem log
+      if ((await exec("test -f $logPath && echo 'YES'")).contains("YES")) {
+        final content = await exec("cat $logPath");
+        if (content.trim().isNotEmpty) return content;
+      }
+
+      // 2. Fallback to dmesg/logcat with precise tag filtering
+      final logs = await exec("logcat -d -s $tag | tail -n 100 || true");
+      final filtered =
+          logs.split('\n').where((l) => !l.startsWith('---------')).join('\n');
+      if (filtered.trim().isNotEmpty) return filtered;
+
+      return "Waiting for logs...";
+    } catch (e, st) {
+      logger.e("LayaBMShell: Log retrieval failed", e, st, true);
+      return "Error retrieving logs: $e";
     }
-
-    // Comment: 2. Fallback to dmesg/logcat with precise tag filtering
-    final logs = await exec("logcat -d -s $tag | tail -n 100 || true");
-    final filtered =
-        logs.split('\n').where((l) => !l.startsWith('---------')).join('\n');
-    if (filtered.trim().isNotEmpty) return filtered;
-
-    return "Waiting for logs...";
   }
 
   Future<void> _clearLogs(String binName) async {
-    final logPath = "/data/data/com.aby.rootify/files/logs/$binName.log";
-    await exec("truncate -s 0 $logPath || > $logPath");
-    await exec("logcat -b all -c");
+    final logPath = "/data/adb/modules/rootify/logs/log-laya-battmon.log";
+    try {
+      await exec("truncate -s 0 $logPath || > $logPath");
+      await exec("logcat -b all -c");
+    } catch (e) {
+      // Ignored
+    }
   }
 }
 
 // ---- MAJOR ---
 // Global Providers
 final layabattmonShellProvider = Provider((ref) {
-  final session = ShellSession(); // Comment: Reuses singleton shell bridge
+  final session = ShellSession();
   return LayaBattmonShellService(session);
 });

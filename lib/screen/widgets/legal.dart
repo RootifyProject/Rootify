@@ -28,14 +28,12 @@ import 'about_widgets.dart';
 // --- LegalSection
 class LegalSection extends StatelessWidget {
   final VoidCallback onEulaTap;
-  final VoidCallback onLicenseTap;
   final VoidCallback onPrivacyPolicyTap;
   final VoidCallback onOssLicensesTap;
 
   const LegalSection({
     super.key,
     required this.onEulaTap,
-    required this.onLicenseTap,
     required this.onPrivacyPolicyTap,
     required this.onOssLicensesTap,
   });
@@ -51,28 +49,22 @@ class LegalSection extends StatelessWidget {
         // --- Sub
         // Documents List
         _InfoLinkTile(
-          icon: LucideIcons.fileText,
+          icon: LucideIcons.gavel,
           title: "EULA - Rootify",
           subtitle: "End User License Agreement",
           onTap: onEulaTap,
-        ),
-        _InfoLinkTile(
-          icon: LucideIcons.scale,
-          title: "Open Source Licenses",
-          subtitle: "Legal attribution",
-          onTap: onLicenseTap,
-        ),
-        _InfoLinkTile(
-          icon: LucideIcons.package,
-          title: "OSS Licenses",
-          subtitle: "Open source attribution",
-          onTap: onOssLicensesTap,
         ),
         _InfoLinkTile(
           icon: LucideIcons.shieldCheck,
           title: "Privacy Policy",
           subtitle: "How we handle data",
           onTap: onPrivacyPolicyTap,
+        ),
+        _InfoLinkTile(
+          icon: LucideIcons.package,
+          title: "OSS Licenses",
+          subtitle: "Open source attribution",
+          onTap: onOssLicensesTap,
         ),
       ],
     );

@@ -29,7 +29,7 @@ import '../../shell/superuser.dart';
 import '../../effects/rootify_blur.dart';
 import '../../theme/theme_provider.dart';
 import '../../services/battery.dart';
-import '../overlays/theme_set.dart';
+import '../../animations/master_transition.dart';
 
 // ---- MAJOR ---
 // Primary System Status Bar Implementation
@@ -64,16 +64,25 @@ class SystemStatusBar extends ConsumerWidget {
     // --- Sub
     // Glassmorphic Surface Container
     Widget glassContainer({required Widget child, EdgeInsets? padding}) {
-      final glassColor = isDarkMode
-          ? colorScheme.surfaceContainer.withValues(alpha: 0.8)
-          : colorScheme.surfaceContainerLow.withValues(alpha: 0.95);
+      final themeState = ref.watch(themeProvider);
+      final blurEnabled = themeState.enableBlurDockStatus;
+
+      final glassColor = blurEnabled
+          ? (isDarkMode
+              ? colorScheme.surfaceContainer.withValues(alpha: 0.8)
+              : colorScheme.surfaceContainerLow.withValues(alpha: 0.95))
+          : (isDarkMode
+              ? colorScheme.surfaceContainer
+              : colorScheme.surfaceContainerLow);
 
       return RootifyBlur(
         category: BlurCategory.dock,
         color: glassColor,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+            color: themeState.visualStyle == AppVisualStyle.aurora
+                ? colorScheme.primary.withValues(alpha: 0.15)
+                : colorScheme.outlineVariant.withValues(alpha: 0.4),
             width: 1.5),
         padding:
             padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -231,29 +240,48 @@ class SystemStatusBar extends ConsumerWidget {
               SizedBox(
                 height: 40,
                 width: 40,
-                child: BouncingButton(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    showDialog(
-                        context: context,
-                        builder: (_) => const ThemeSettingsOverlay());
-                  },
-                  child: glassContainer(
-                    padding: EdgeInsets.zero,
-                    child: Center(
-                      child: ThemeButtonTransition(
-                        child: Icon(
-                          isDarkMode
-                              ? Icons.dark_mode_rounded
-                              : Icons.light_mode_rounded,
-                          key: ValueKey(isDarkMode),
-                          size: 20,
-                          color: colorScheme.primary,
+                child: Builder(builder: (context) {
+                  return BouncingButton(
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+
+                      // Calculate button center for circular reveal
+                      final renderBox =
+                          context.findRenderObject() as RenderBox?;
+                      final offset =
+                          renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
+                      final size = renderBox?.size ?? Size.zero;
+                      final center =
+                          offset + Offset(size.width / 2, size.height / 2);
+
+                      // Trigger global transition
+                      MasterTransition.of(context).changeTheme(
+                        position: center,
+                        onThemeChanged: () {
+                          final newMode = isDarkMode
+                              ? AppThemeMode.light
+                              : AppThemeMode.dark;
+                          ref.read(themeProvider.notifier).setMode(newMode);
+                        },
+                      );
+                    },
+                    child: glassContainer(
+                      padding: EdgeInsets.zero,
+                      child: Center(
+                        child: ThemeButtonTransition(
+                          child: Icon(
+                            isDarkMode
+                                ? Icons.dark_mode_rounded
+                                : Icons.light_mode_rounded,
+                            key: ValueKey(isDarkMode),
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ),
             ],
           ],

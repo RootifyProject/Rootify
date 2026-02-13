@@ -87,9 +87,8 @@ class SystemStatusBarAnimations {
 }
 
 // ---- MAJOR ---
-// Theme Button Transition (3D Flip)
+// Theme Button Transition (Telegram-style Rotation + Scale)
 class ThemeButtonTransition extends StatelessWidget {
-  // --- Parameters
   final Widget child;
 
   const ThemeButtonTransition({
@@ -100,48 +99,14 @@ class ThemeButtonTransition extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 800),
-      reverseDuration: const Duration(milliseconds: 600),
-      switchInCurve: Curves.linear,
-      switchOutCurve: Curves.linear,
-      layoutBuilder: (currentChild, previousChildren) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            ...previousChildren,
-            if (currentChild != null) currentChild,
-          ],
-        );
-      },
+      duration: const Duration(milliseconds: 400),
+      switchInCurve: Curves.easeOutBack,
+      switchOutCurve: Curves.easeInBack,
       transitionBuilder: (child, animation) {
-        // --- Smooth Transition
-        final curvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.elasticOut,
-          reverseCurve: Curves.easeInBack,
-        );
-
-        // --- 3D Flip Logic
-        final rotateAnim = Tween<double>(begin: 3.14159, end: 0.0).animate(
-          CurvedAnimation(parent: animation, curve: Curves.easeInOutBack),
-        );
-
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (context, child) {
-            // --- Apply Perspective
-            final transform = Matrix4.identity()
-              ..setEntry(3, 2, 0.003) // Perspective depth
-              ..rotateY(rotateAnim.value); // Rotate Y axis
-
-            return Transform(
-              alignment: Alignment.center,
-              transform: transform,
-              child: child,
-            );
-          },
+        return RotationTransition(
+          turns: Tween<double>(begin: 0.8, end: 1.0).animate(animation),
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation),
+            scale: animation,
             child: child,
           ),
         );

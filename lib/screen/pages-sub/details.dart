@@ -18,17 +18,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// ---- EXTERNAL ---
-import 'package:lucide_icons/lucide_icons.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-
 // ---- LOCAL ---
+import '../../theme/rootify_background_provider.dart';
 import '../../widgets/cards.dart';
+import '../statusbar/statusbar.dart';
 
 // ---- MAJOR ---
-// Branded Metadata & Asset Viewer
-class DetailsPage extends StatelessWidget {
-  // ---- STATEFUL PARAMETERS ---
+// Generic Detail Page for displaying text content from assets
+class DetailsPage extends StatefulWidget {
   final String title;
   final String assetPath;
   final IconData icon;
@@ -40,15 +37,44 @@ class DetailsPage extends StatelessWidget {
     required this.icon,
   });
 
-  // ---- UI BUILDER ---
+  @override
+  State<DetailsPage> createState() => _DetailsPageState();
+}
+
+class _DetailsPageState extends State<DetailsPage> {
+  String _content = '';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContent();
+  }
+
+  Future<void> _loadContent() async {
+    try {
+      final data = await rootBundle.loadString(widget.assetPath);
+      if (mounted) {
+        setState(() {
+          _content = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _content = 'Error loading content: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // --- Sub
-    // Theme & Context
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
+    final topPadding = MediaQuery.of(context).padding.top;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -61,155 +87,98 @@ class DetailsPage extends StatelessWidget {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            // --- Sub
-            // 1. Mirrored Dynamic Mesh Background
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.surface,
-                      colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainerHigh,
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Primary Glow Effect
-                    Positioned(
-                      top: -120,
-                      left: -120,
-                      child: Container(
-                        width: 450,
-                        height: 450,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.primary.withValues(alpha: 0.1),
-                              colorScheme.primary.withValues(alpha: 0.0),
+        body: RootifySubBackground(
+          child: Stack(
+            children: [
+              // Main Content
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
+
+                  // Header
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  widget.icon,
+                                  color: theme.colorScheme.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  widget.title,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(30, -30),
-                          end: const Offset(-30, 30),
-                          duration: 12.seconds),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ),
+                  ),
 
-            // --- Sub
-            // 2. Main Scrolling Content
-            CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // Feature App Bar
-                SliverAppBar(
-                  expandedHeight: 180,
-                  pinned: true,
-                  stretch: true,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  leading: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircleAvatar(
-                      backgroundColor:
-                          isDarkMode ? Colors.black26 : Colors.white54,
-                      child: IconButton(
-                        icon: const Icon(LucideIcons.arrowLeft, size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ),
-                  flexibleSpace: FlexibleSpaceBar(
-                    stretchModes: const [
-                      StretchMode.zoomBackground,
-                      StretchMode.blurBackground,
-                    ],
-                    background: Center(
-                      child: Opacity(
-                        opacity: 0.4,
-                        child: Icon(
-                          icon,
-                          size: 80,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Documentation Content
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2.0,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        RootifySubCard(
-                          padding: const EdgeInsets.all(20),
-                          child: FutureBuilder<String>(
-                            future: rootBundle.loadString(assetPath),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const SizedBox(
-                                  height: 200,
-                                  child: Center(
-                                      child: CircularProgressIndicator()),
-                                );
-                              }
-                              if (snapshot.hasError) {
-                                return const Text(
-                                    "Error loading license content.");
-                              }
-                              return Text(
-                                snapshot.data ?? "",
+                  // Content
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      child: RootifyCard(
+                        padding: const EdgeInsets.all(2),
+                        child: _isLoading
+                            ? const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(40),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            : SelectableText(
+                                _content,
                                 style: TextStyle(
                                   fontSize: 13,
                                   height: 1.6,
-                                  color: colorScheme.onSurface
-                                      .withValues(alpha: 0.9),
-                                  fontFamily: 'monospace',
+                                  color: theme.colorScheme.onSurface,
+                                  fontFamily: 'Monospace',
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 100),
-                      ],
+                              ),
+                      ),
                     ),
                   ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
+              ),
+
+              // Status Bar
+              Positioned(
+                top: topPadding + 10,
+                left: 0,
+                right: 0,
+                child: SystemStatusBar(
+                  title: widget.title.toUpperCase(),
+                  showBackButton: true,
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -24,7 +24,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 // ---- LOCAL ---
 import '../../providers/shared_prefs_provider.dart';
@@ -38,6 +37,7 @@ import '../../widgets/toast.dart';
 import '../widgets/zram_allocation.dart';
 import '../widgets/advanced_tuning.dart';
 import '../../animations/splashscreen_animation.dart';
+import '../../theme/rootify_background_provider.dart';
 
 // ---- MAJOR ---
 // Primary Page for Managing ZRAM and Kernel Memory Parameters
@@ -51,6 +51,7 @@ class MemoryManagerPage extends ConsumerStatefulWidget {
 class _MemoryManagerPageState extends ConsumerState<MemoryManagerPage> {
   // ---- STATE VARIABLES ---
   bool _isLoading = true;
+  bool _isApplying = false; // Fix: Track application state
   double _currentZramSize = 0;
   double _sliderValue = 0;
   double _swappinessSliderValue = 60;
@@ -133,7 +134,8 @@ class _MemoryManagerPageState extends ConsumerState<MemoryManagerPage> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
+      logger.e("ZRAM Data Load Error", e, st, true);
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -173,7 +175,13 @@ class _MemoryManagerPageState extends ConsumerState<MemoryManagerPage> {
   // ---- KERNEL INTERACTIONS ---
 
   Future<void> _applySettings() async {
+    // Fix: Prevent re-entry
+    if (_isApplying) return;
+
     HapticFeedback.mediumImpact();
+
+    // Fix: Set applying state
+    setState(() => _isApplying = true);
 
     final targetMB = _sliderValue.toInt();
     final targetSwappiness = _swappinessSliderValue.toInt();
@@ -229,10 +237,16 @@ class _MemoryManagerPageState extends ConsumerState<MemoryManagerPage> {
         RootifyToast.success(context, "Memory optimization applied");
       }
     } catch (e, st) {
+      // Fix: Dismiss loading on error
       dismissLoading();
-      logger.e("Memory Manager error", e, st);
+      logger.e("ZRAM Tweaking error", e, st, true);
       if (mounted) {
         RootifyToast.error(context, "Failed to apply settings: $e");
+      }
+    } finally {
+      // Fix: Reset applying state
+      if (mounted) {
+        setState(() => _isApplying = false);
       }
     }
   }
@@ -286,7 +300,6 @@ class _MemoryManagerPageState extends ConsumerState<MemoryManagerPage> {
     // --- Sub
     // Theme & Context
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
     final topPadding = MediaQuery.of(context).padding.top;
 
@@ -301,207 +314,161 @@ class _MemoryManagerPageState extends ConsumerState<MemoryManagerPage> {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            // --- Sub
-            // 1. Mirrored Dynamic Mesh Background
-            Positioned.fill(
-              child: AnimatedContainer(
-                duration: const Duration(seconds: 1),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.surface,
-                      colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainerHigh,
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Detail: Primary Glow
-                    Positioned(
-                      top: -120,
-                      left: -120,
-                      child: Container(
-                        width: 450,
-                        height: 450,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.primary.withValues(alpha: 0.15),
-                              colorScheme.primary.withValues(alpha: 0.0),
-                            ],
-                          ),
+        body: RootifySubBackground(
+          child: Stack(
+            children: [
+              // --- Sub
+              // 2. Content Logic Layer
+              _isLoading
+                  ? Center(
+                      child: SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: SplashScreenAnimation.drawPathAnimation(
+                          path: SplashScreenAnimation.getOfficialLogoPath(
+                              const Size(60, 60)),
+                          color: theme.colorScheme.primary,
+                          duration: const Duration(seconds: 2),
                         ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(30, -30),
-                          end: const Offset(-30, 30),
-                          duration: 12.seconds),
-                    ),
-                    // Detail: Secondary Glow
-                    Positioned(
-                      bottom: -80,
-                      right: -80,
-                      child: Container(
-                        width: 350,
-                        height: 350,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.secondary.withValues(alpha: 0.1),
-                              colorScheme.secondary.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(-30, 30),
-                          end: const Offset(30, -30),
-                          duration: 10.seconds),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // --- Sub
-            // 2. Content Logic Layer
-            _isLoading
-                ? Center(
-                    child: SizedBox(
-                      width: 60,
-                      height: 60,
-                      child: SplashScreenAnimation.drawPathAnimation(
-                        path: SplashScreenAnimation.getOfficialLogoPath(
-                            const Size(60, 60)),
-                        color: colorScheme.primary,
-                        duration: const Duration(seconds: 2),
                       ),
-                    ),
-                  )
-                : CustomScrollView(
-                    key: const PageStorageKey('memory_manager_page_scroll'),
-                    physics: const BouncingScrollPhysics(),
-                    slivers: [
-                      // Detail: Header Space
-                      SliverToBoxAdapter(
-                          child: SizedBox(height: topPadding + 80)),
+                    )
+                  : CustomScrollView(
+                      key: const PageStorageKey('memory_manager_page_scroll'),
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        // Detail: Header Space
+                        SliverToBoxAdapter(
+                            child: SizedBox(height: topPadding + 80)),
 
-                      // Detail: Header Branding & Boot Persistence
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 28),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("ZRAM",
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 2.0,
-                                            height: 1.0,
-                                            color: theme.colorScheme.primary)),
-                                    Text("TWEAKING",
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 2.0,
-                                            height: 1.0,
-                                            color: theme.colorScheme.primary)),
-                                  ],
+                        // Detail: Header Branding & Boot Persistence
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text("ZRAM",
+                                          style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 2.0,
+                                              height: 1.0,
+                                              color:
+                                                  theme.colorScheme.primary)),
+                                      Text("TWEAKING",
+                                          style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 2.0,
+                                              height: 1.0,
+                                              color:
+                                                  theme.colorScheme.primary)),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 215,
+                                  child: _buildApplyOnBootToggle(context),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                        // Detail: Allocation Control Interface
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverToBoxAdapter(
+                            // Fix: Block input when applying
+                            child: AbsorbPointer(
+                              absorbing: _isApplying,
+                              child: Opacity(
+                                opacity: _isApplying ? 0.6 : 1.0,
+                                child: ZramAllocationCard(
+                                  totalRamMB: _totalRamMB,
+                                  sliderValue: _sliderValue,
+                                  safeLimitMB: _safeLimitMB.toDouble(),
+                                  hardLimitMB: _hardLimitMB.toDouble(),
+                                  isUnlocked: _isUnlocked,
+                                  controller: _controller,
+                                  onSliderChanged: _onSliderChanged,
+                                  onTextChanged: _onTextChanged,
+                                  onUnlock: () {
+                                    HapticFeedback.mediumImpact();
+                                    setState(() => _isUnlocked = true);
+                                    RootifyToast.show(
+                                        context, "Limit unlocked! Be careful.",
+                                        icon: LucideIcons.alertTriangle);
+                                  },
                                 ),
                               ),
-                              SizedBox(
-                                width: 215,
-                                child: _buildApplyOnBootToggle(context),
+                            ),
+                          ),
+                        ),
+
+                        // Detail: Advanced Property Tuning
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverToBoxAdapter(
+                            // Fix: Block input when applying
+                            child: AbsorbPointer(
+                              absorbing: _isApplying,
+                              child: Opacity(
+                                opacity: _isApplying ? 0.6 : 1.0,
+                                child: AdvancedTuningCard(
+                                  availableAlgos: _availableAlgos,
+                                  selectedAlgo: _selectedAlgo,
+                                  swappinessValue: _swappinessSliderValue,
+                                  vfsPressureValue: _vfsPressure,
+                                  onAlgoSelected: (algo) {
+                                    HapticFeedback.selectionClick();
+                                    setState(() => _selectedAlgo = algo);
+                                  },
+                                  onSwappinessChanged: (val) {
+                                    HapticFeedback.selectionClick();
+                                    setState(
+                                        () => _swappinessSliderValue = val);
+                                  },
+                                  onVfsPressureChanged: (val) {
+                                    HapticFeedback.selectionClick();
+                                    setState(() => _vfsPressure = val);
+                                  },
+                                ),
                               ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
 
-                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                      // Detail: Allocation Control Interface
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        sliver: SliverToBoxAdapter(
-                          child: ZramAllocationCard(
-                            totalRamMB: _totalRamMB,
-                            sliderValue: _sliderValue,
-                            safeLimitMB: _safeLimitMB.toDouble(),
-                            hardLimitMB: _hardLimitMB.toDouble(),
-                            isUnlocked: _isUnlocked,
-                            controller: _controller,
-                            onSliderChanged: _onSliderChanged,
-                            onTextChanged: _onTextChanged,
-                            onUnlock: () {
-                              HapticFeedback.mediumImpact();
-                              setState(() => _isUnlocked = true);
-                              RootifyToast.show(
-                                  context, "Limit unlocked! Be careful.",
-                                  icon: LucideIcons.alertTriangle);
-                            },
+                        // Detail: Operational Execution Control
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                          sliver: SliverToBoxAdapter(
+                            child: _buildApplyButton(context),
                           ),
                         ),
-                      ),
 
-                      // Detail: Advanced Property Tuning
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        sliver: SliverToBoxAdapter(
-                          child: AdvancedTuningCard(
-                            availableAlgos: _availableAlgos,
-                            selectedAlgo: _selectedAlgo,
-                            swappinessValue: _swappinessSliderValue,
-                            vfsPressureValue: _vfsPressure,
-                            onAlgoSelected: (algo) {
-                              HapticFeedback.selectionClick();
-                              setState(() => _selectedAlgo = algo);
-                            },
-                            onSwappinessChanged: (val) {
-                              HapticFeedback.selectionClick();
-                              setState(() => _swappinessSliderValue = val);
-                            },
-                            onVfsPressureChanged: (val) {
-                              HapticFeedback.selectionClick();
-                              setState(() => _vfsPressure = val);
-                            },
-                          ),
-                        ),
-                      ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                      ],
+                    ),
 
-                      // Detail: Operational Execution Control
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        sliver: SliverToBoxAdapter(
-                          child: _buildApplyButton(context),
-                        ),
-                      ),
-
-                      const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                    ],
-                  ),
-
-            // --- Sub
-            // 3. Floating Feature Status Bar
-            Positioned(
-              top: topPadding + 10,
-              left: 0,
-              right: 0,
-              child: const MemoryStatusBar(),
-            ),
-          ],
+              // --- Sub
+              // 3. Floating Feature Status Bar
+              Positioned(
+                top: topPadding + 10,
+                left: 0,
+                right: 0,
+                child: const MemoryStatusBar(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -512,7 +479,8 @@ class _MemoryManagerPageState extends ConsumerState<MemoryManagerPage> {
   Widget _buildApplyOnBootToggle(BuildContext context) {
     final theme = Theme.of(context);
     return RootifySubCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -616,10 +584,22 @@ class _MemoryManagerPageState extends ConsumerState<MemoryManagerPage> {
       height: 56,
       margin: const EdgeInsets.only(top: 12),
       child: OutlinedButton.icon(
-        onPressed: isModified ? _applySettings : null,
-        icon: const Icon(LucideIcons.zap, size: 18),
+        // Fix: Disable button and show loading state
+        onPressed: (isModified && !_isApplying) ? _applySettings : null,
+        icon: _isApplying
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: theme.colorScheme.primary,
+                ),
+              )
+            : const Icon(LucideIcons.zap, size: 18),
         label: Text(
-          isModified ? "APPLY SETTINGS" : "SETTINGS APPLIED",
+          _isApplying
+              ? "APPLYING..."
+              : (isModified ? "APPLY SETTINGS" : "SETTINGS APPLIED"),
           style: const TextStyle(
               fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 13),
         ),

@@ -38,8 +38,8 @@ class MemoryManagerCard extends StatelessWidget {
 
     // --- Component Assembly
     return RootifyCard(
-      title: "Memory Manager",
-      subtitle: "Dynamic RAM expansion & virtual memory tuning.",
+      title: "ZRAM Tweaking",
+      subtitle: "Tweaking & Optimization ZRAM",
       icon: LucideIcons.hardDrive,
       onTap: () {
         HapticFeedback.lightImpact();

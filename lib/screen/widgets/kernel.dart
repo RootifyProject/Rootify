@@ -40,6 +40,7 @@ class KernelSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RootifyCard(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       title: "Kernel",
       icon: LucideIcons.terminal,
       child: Column(

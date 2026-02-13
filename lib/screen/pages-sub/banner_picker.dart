@@ -23,12 +23,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 // ---- LOCAL ---
 import '../../theme/theme_provider.dart';
+import '../../theme/rootify_background_provider.dart';
 import '../statusbar/sb_bannerpicker.dart';
 import '../../widgets/toast.dart';
 import '../../widgets/cards.dart';
@@ -157,187 +157,59 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            // --- Sub
-            // 1. Mirrored Dynamic Mesh Background
-            Positioned.fill(
-              child: AnimatedContainer(
-                duration: const Duration(seconds: 1),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.surface,
-                      colorScheme.surfaceContainer,
-                      colorScheme.surfaceContainerHigh,
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Primary Glow
-                    Positioned(
-                      top: -120,
-                      left: -120,
-                      child: Container(
-                        width: 450,
-                        height: 450,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.primary.withValues(alpha: 0.15),
-                              colorScheme.primary.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(30, -30),
-                          end: const Offset(-30, 30),
-                          duration: 12.seconds),
-                    ),
-                    // Secondary Glow
-                    Positioned(
-                      bottom: -80,
-                      right: -80,
-                      child: Container(
-                        width: 350,
-                        height: 350,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              colorScheme.secondary.withValues(alpha: 0.1),
-                              colorScheme.secondary.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                          begin: const Offset(-30, 30),
-                          end: const Offset(30, -30),
-                          duration: 10.seconds),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+        body: RootifySubBackground(
+          child: Stack(
+            children: [
+              // --- Sub
+              // 1. Content Layer
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Header Space
+                  SliverToBoxAdapter(child: SizedBox(height: topPadding + 85)),
 
-            // --- Sub
-            // 2. Main Scrolling Content
-            CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // Header Space
-                SliverToBoxAdapter(child: SizedBox(height: topPadding + 85)),
+                  // Dimensional Scaling Container
+                  SliverPadding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        // Technical Guidance Card
+                        _buildInfoCard(theme),
+                        const SizedBox(height: 16),
 
-                // Dimensional Scaling Container
-                SliverPadding(
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      // Technical Guidance Card
-                      _buildInfoCard(theme),
-                      const SizedBox(height: 16),
-
-                      // System Dynamic Mode
-                      _buildBannerCard(
-                        context,
-                        title: 'Default Dynamic',
-                        subtitle: 'Use system theme colors & blurs',
-                        isSelected:
-                            themeState.heroBannerType == HeroBannerType.dynamic,
-                        onTap: () {
-                          ref
-                              .read(themeProvider.notifier)
-                              .setHeroBanner(HeroBannerType.dynamic, null);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                colorScheme.primary.withValues(alpha: 0.4),
-                                colorScheme.secondary.withValues(alpha: 0.3),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Built-in Asset Library
-                      Row(
-                        children: [
-                          Icon(LucideIcons.image,
-                              size: 16, color: colorScheme.primary),
-                          const SizedBox(width: 8),
-                          Text('BUILT-IN BANNERS',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
-                                color: colorScheme.primary,
-                              )),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                    ]),
-                  ),
-                ),
-
-                // Responsive Grid for Assets
-                SliverPadding(
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: isWide ? 3 : 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.5,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final path = _builtInBanners[index];
-                        return _buildBannerCard(
+                        // System Dynamic Mode
+                        _buildBannerCard(
                           context,
+                          title: 'Default Dynamic',
+                          subtitle: 'Use system theme colors & blurs',
                           isSelected: themeState.heroBannerType ==
-                                  HeroBannerType.asset &&
-                              themeState.heroBannerPath == path,
+                              HeroBannerType.dynamic,
                           onTap: () {
                             ref
                                 .read(themeProvider.notifier)
-                                .setHeroBanner(HeroBannerType.asset, path);
-                            RootifyToast.show(
-                                context, 'Built-in banner applied');
+                                .setHeroBanner(HeroBannerType.dynamic, null);
                           },
-                          child: Image.asset(path, fit: BoxFit.cover),
-                        );
-                      },
-                      childCount: _builtInBanners.length,
-                    ),
-                  ),
-                ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  colorScheme.primary.withValues(alpha: 0.4),
+                                  colorScheme.secondary.withValues(alpha: 0.3),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
 
-                // User-defined Custom Assets
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: horizontalPadding,
-                      right: horizontalPadding,
-                      top: 32,
-                      bottom: 8,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+                        // Built-in Asset Library
                         Row(
                           children: [
-                            Icon(LucideIcons.folderOpen,
+                            Icon(LucideIcons.image,
                                 size: 16, color: colorScheme.primary),
                             const SizedBox(width: 8),
-                            Text('CUSTOM BANNERS',
+                            Text('BUILT-IN BANNERS',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w900,
@@ -346,54 +218,12 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
                                 )),
                           ],
                         ),
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: _pickNewBanner,
-                              icon: const Icon(LucideIcons.plus, size: 20),
-                              tooltip: 'Pick from Gallery',
-                            ),
-                            IconButton(
-                              onPressed: _loadCustomBanners,
-                              icon: const Icon(LucideIcons.rotateCw, size: 16),
-                              tooltip: 'Refresh Folder',
-                            ),
-                          ],
-                        ),
-                      ],
+                        const SizedBox(height: 12),
+                      ]),
                     ),
                   ),
-                ),
 
-                if (_isLoadingCustom)
-                  const SliverToBoxAdapter(
-                    child: Center(
-                        child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: CircularProgressIndicator(),
-                    )),
-                  )
-                else if (_customBanners.isEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        children: [
-                          Icon(LucideIcons.fileQuestion,
-                              size: 48,
-                              color: theme.hintColor.withValues(alpha: 0.3)),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No images found in:\nAndroid/data/com.aby.rootify/banner/',
-                            textAlign: TextAlign.center,
-                            style:
-                                TextStyle(fontSize: 12, color: theme.hintColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
+                  // Responsive Grid for Assets
                   SliverPadding(
                     padding:
                         EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -406,39 +236,148 @@ class _BannerPickerPageState extends ConsumerState<BannerPickerPage> {
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          final file = _customBanners[index];
+                          final path = _builtInBanners[index];
                           return _buildBannerCard(
                             context,
                             isSelected: themeState.heroBannerType ==
-                                    HeroBannerType.custom &&
-                                themeState.heroBannerPath == file.path,
+                                    HeroBannerType.asset &&
+                                themeState.heroBannerPath == path,
                             onTap: () {
-                              ref.read(themeProvider.notifier).setHeroBanner(
-                                  HeroBannerType.custom, file.path);
+                              ref
+                                  .read(themeProvider.notifier)
+                                  .setHeroBanner(HeroBannerType.asset, path);
                               RootifyToast.show(
-                                  context, 'Custom banner applied');
+                                  context, 'Built-in banner applied');
                             },
-                            child: Image.file(file, fit: BoxFit.cover),
+                            child: Image.asset(path, fit: BoxFit.cover),
                           );
                         },
-                        childCount: _customBanners.length,
+                        childCount: _builtInBanners.length,
                       ),
                     ),
                   ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
-              ],
-            ),
+                  // User-defined Custom Assets
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: horizontalPadding,
+                        right: horizontalPadding,
+                        top: 32,
+                        bottom: 8,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(LucideIcons.folderOpen,
+                                  size: 16, color: colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text('CUSTOM BANNERS',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5,
+                                    color: colorScheme.primary,
+                                  )),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: _pickNewBanner,
+                                icon: const Icon(LucideIcons.plus, size: 20),
+                                tooltip: 'Pick from Gallery',
+                              ),
+                              IconButton(
+                                onPressed: _loadCustomBanners,
+                                icon:
+                                    const Icon(LucideIcons.rotateCw, size: 16),
+                                tooltip: 'Refresh Folder',
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-            // --- Sub
-            // 3. Floating Status Bar
-            Positioned(
-              top: topPadding + 10,
-              left: 0,
-              right: 0,
-              child: const BannerPickerStatusBar(),
-            ),
-          ],
+                  if (_isLoadingCustom)
+                    const SliverToBoxAdapter(
+                      child: Center(
+                          child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: CircularProgressIndicator(),
+                      )),
+                    )
+                  else if (_customBanners.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          children: [
+                            Icon(LucideIcons.fileQuestion,
+                                size: 48,
+                                color: theme.hintColor.withValues(alpha: 0.3)),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No images found in:\nAndroid/data/com.aby.rootify/banner/',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 12, color: theme.hintColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: isWide ? 3 : 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.5,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final file = _customBanners[index];
+                            return _buildBannerCard(
+                              context,
+                              isSelected: themeState.heroBannerType ==
+                                      HeroBannerType.custom &&
+                                  themeState.heroBannerPath == file.path,
+                              onTap: () {
+                                ref.read(themeProvider.notifier).setHeroBanner(
+                                    HeroBannerType.custom, file.path);
+                                RootifyToast.show(
+                                    context, 'Custom banner applied');
+                              },
+                              child: Image.file(file, fit: BoxFit.cover),
+                            );
+                          },
+                          childCount: _customBanners.length,
+                        ),
+                      ),
+                    ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
+              ),
+
+              // --- Sub
+              // 2. Floating Status Bar
+              Positioned(
+                top: topPadding + 10,
+                left: 0,
+                right: 0,
+                child: const BannerPickerStatusBar(),
+              ),
+            ],
+          ),
         ),
       ),
     );

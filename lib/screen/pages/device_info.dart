@@ -26,6 +26,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 // ---- LOCAL ---
 import '../../shell/superuser.dart';
 import '../../theme/theme_provider.dart';
+import '../../theme/rootify_background_provider.dart';
 import '../../services/vendor.dart';
 import '../statusbar/sb_deviceinfo.dart';
 
@@ -53,130 +54,62 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
   @override
   Widget build(BuildContext context) {
     // --- Sub
-    // Theme & Context
-    final colorScheme = Theme.of(context).colorScheme;
-
-    // --- Sub
     // Watch Hardware Data
     final infoAsync = ref.watch(vendorInfoProvider);
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // --- Sub
-          // 1. Mirrored Dynamic Mesh Background
-          Positioned.fill(
-            child: AnimatedContainer(
-              duration: const Duration(seconds: 1),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colorScheme.surface,
-                    colorScheme.surfaceContainer,
-                    colorScheme.surfaceContainerHigh,
-                  ],
-                  stops: const [0.0, 0.4, 1.0],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Primary Glow
-                  Positioned(
-                    top: -120,
-                    left: -120,
-                    child: Container(
-                      width: 450,
-                      height: 450,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            colorScheme.primary.withValues(alpha: 0.15),
-                            colorScheme.primary.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                        begin: const Offset(30, -30),
-                        end: const Offset(-30, 30),
-                        duration: 12.seconds),
-                  ),
-                  // Secondary Glow
-                  Positioned(
-                    bottom: -80,
-                    right: -80,
-                    child: Container(
-                      width: 350,
-                      height: 350,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            colorScheme.secondary.withValues(alpha: 0.1),
-                            colorScheme.secondary.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ).animate(onPlay: (c) => c.repeat(reverse: true)).move(
-                        begin: const Offset(-30, 30),
-                        end: const Offset(30, -30),
-                        duration: 10.seconds),
+      body: RootifyMainBackground(
+        child: Stack(
+          children: [
+            // --- Sub
+            // 2. Main Scrolling Content
+            infoAsync.when(
+              data: (info) => CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Header Space
+                  SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
+
+                  // Premium Brand Hero Section
+                  SliverToBoxAdapter(child: _buildHeroBanner(context, info)),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                  // Essential Specification Cards
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        HardwareSection(info: info),
+                        OsSection(info: info),
+                        KernelSection(info: info),
+                        const ProcessorSection(),
+                        const GraphicsSection(),
+                        const MemorySection(),
+                        const BatterySection(),
+                        const SizedBox(height: 100),
+                      ]),
+                    ),
                   ),
                 ],
               ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) =>
+                  _ErrorState(error: err.toString(), theme: Theme.of(context)),
             ),
-          ),
 
-          // --- Sub
-          // 2. Main Scrolling Content
-          infoAsync.when(
-            data: (info) => CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // Header Space
-                SliverToBoxAdapter(child: SizedBox(height: topPadding + 80)),
-
-                // Premium Brand Hero Section
-                SliverToBoxAdapter(child: _buildHeroBanner(context, info)),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-                // Essential Specification Cards
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      HardwareSection(info: info),
-                      OsSection(info: info),
-                      KernelSection(info: info),
-                      const ProcessorSection(),
-                      const GraphicsSection(),
-                      const MemorySection(),
-                      const BatterySection(),
-                      const SizedBox(height: 100),
-                    ]),
-                  ),
-                ),
-              ],
+            // --- Sub
+            // 3. Floating Status Bar
+            Positioned(
+              top: topPadding + 10,
+              left: 0,
+              right: 0,
+              child: const DeviceInfoStatusBar(),
             ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) =>
-                _ErrorState(error: err.toString(), theme: Theme.of(context)),
-          ),
-
-          // --- Sub
-          // 3. Floating Status Bar
-          Positioned(
-            top: topPadding + 10,
-            left: 0,
-            right: 0,
-            child: const DeviceInfoStatusBar(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

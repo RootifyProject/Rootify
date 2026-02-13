@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-// ---- SYSTEM ---
-import 'dart:io';
-
 // ---- EXTERNAL ---
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 // ---- LOCAL ---
 import '../shell/shell_cpu.dart';
 import '../shell/superuser.dart';
 import '../shell/shellsession.dart';
 import '../utils/app_logger.dart';
+import '../shell/shell_magisk.dart';
+import '../providers/rootify_module_provider.dart';
 
 // ---- MAJOR ---
 // High-performance Execution Engine for Root Shell Interactions
@@ -45,7 +43,73 @@ class ShellService {
 
   // --- Sub
   // Lifecycle Handlers
-  Future<void> warmup() async {}
+  Future<void> warmup() async {
+    logger.i("ShellService: Warming up hardware abstraction layer...");
+
+    // 1. Check if module residency is already established and up-to-date
+    final magisk = MagiskShellService(_session);
+    final hasRT = await magisk.isModuleInstalled("rootify");
+
+    // Perform extraction and deployment ONLY if module is missing
+    // Detailed sync (outdated check) is handled by AddonsProvider -> buildAndSync
+    if (!hasRT) {
+      logger.i("ShellService: Module not found. Initializing residency...");
+      await RootifyModuleBuilder.extractAssets();
+      await _deployToModule();
+      await _fixPermissions();
+    } else {
+      logger.d(
+          "ShellService: Module residency verified. Skipping redundant hot-warmup.");
+    }
+  }
+
+  Future<void> _deployToModule() async {
+    logger.d("ShellService: Deploying assets to module directory...");
+    const String moduleBin = "/data/adb/modules/rootify/bin/";
+    const String moduleShell = "/data/adb/modules/rootify/shell/";
+    const String internalBin = "/data/data/com.aby.rootify/files/bin";
+    const String internalShell = "/data/data/com.aby.rootify/files/shell";
+
+    try {
+      // Ensure module bin and shell directories exist
+      await exec("mkdir -p $moduleBin");
+      await exec("mkdir -p $moduleShell");
+
+      // 1. Surgical Deployment
+      // Copy Binaries -> Module Bin
+      await exec("cp -f $internalBin/* $moduleBin");
+      // Copy Scripts -> Module Shell
+      await exec("cp -f $internalShell/* $moduleShell");
+
+      // 2. Cleanup Redundant files (remove .sh from bin)
+      await exec("rm -f $moduleBin/*.sh", canSkip: true);
+
+      logger.d("ShellService: Deployment completed surgically.");
+    } catch (e) {
+      logger.e("ShellService: Failed to deploy assets to module", e);
+    }
+  }
+
+  Future<void> _fixPermissions() async {
+    logger.d("ShellService: Fixing permissions...");
+    try {
+      // 1. Binaries (Execute) - strictly on module path
+      await exec("chmod -R 755 /data/adb/modules/rootify/bin/");
+
+      // 2. Sysfs Nodes (Write)
+      await exec(
+          "chmod 644 /sys/devices/system/cpu/cpufreq/policy*/scaling_min_freq",
+          canSkip: true);
+      await exec(
+          "chmod 644 /sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq",
+          canSkip: true);
+      await exec(
+          "chmod 644 /sys/devices/system/cpu/cpufreq/policy*/scaling_governor",
+          canSkip: true);
+    } catch (e) {
+      logger.w("ShellService: Permission fix warning (non-fatal): $e");
+    }
+  }
 
   Future<void> validateSession() async {
     logger.d("ShellService: Validating shell session...");
@@ -112,7 +176,7 @@ class ShellService {
   }
 
   // ---- MAJOR ---
-  // Systemless Persistence Generation Engine
+  // Systemless Persistence Generation Engine (Delegated to ModuleBuilder)
   Future<void> syncBootSettings({
     required bool cpuEnabled,
     required bool cpuDisabled,
@@ -131,188 +195,27 @@ class ShellService {
     bool? fpsGoEnabled,
     Map<String, dynamic>? fpsGoSettings,
   }) async {
-    logger.i("ShellService: Synchronizing Magisk/KSU boot module...");
-
-    // MAGISK / KERNELSU MODULE ARCHITECTURE
-    const moduleDir = "/data/adb/modules/rootify";
-    const zigbinPath = "$moduleDir/zigbin"; // The payload script
-    const servicePath = "$moduleDir/service.sh"; // The launcher
-    const actionPath = "$moduleDir/action.sh"; // The KSU action
-    const propPath = "$moduleDir/module.prop";
-
-    // --- Sub
-    // 1. Prepare Payload Generation (zigbin)
-    final sb = StringBuffer();
-    sb.writeln("#!/system/bin/sh");
-    sb.writeln("# (c) 2026 Rootify. All rights reserved.");
-
-    // CPU Dynamic Governor & Frequency Persistence
-    if (cpuEnabled && !cpuDisabled && cpuSettings.isNotEmpty) {
-      cpuSettings.forEach((policy, data) {
-        final path = "/sys/devices/system/cpu/cpufreq/$policy";
-
-        bool isSelected(dynamic val) {
-          if (val is bool) return val;
-          return val.toString().toLowerCase() != 'false';
-        }
-
-        if (data['governor'] != null && isSelected(data['selected_gov'])) {
-          sb.writeln("echo ${data['governor']} > $path/scaling_governor");
-        }
-        if (data['min'] != null && isSelected(data['selected_min'])) {
-          sb.writeln(
-              "echo ${data['min']} > $path/scaling_min_freq && chmod 0644 $path/scaling_min_freq");
-        }
-        if (data['max'] != null && isSelected(data['selected_max'])) {
-          sb.writeln(
-              "echo ${data['max']} > $path/scaling_max_freq && chmod 0644 $path/scaling_max_freq");
-        }
-      });
-    }
-
-    // ZRAM & VM Subsystem Tuning
-    if (zramEnabled) {
-      if (zramSizeMb > 0) {
-        sb.writeln("swapoff /dev/block/zram0 2>/dev/null");
-        sb.writeln("echo 1 > /sys/block/zram0/reset 2>/dev/null");
-        if (zramAlgo != null && zramAlgo.isNotEmpty) {
-          sb.writeln(
-              "echo '$zramAlgo' > /sys/block/zram0/comp_algorithm 2>/dev/null");
-        }
-        sb.writeln(
-            "echo ${zramSizeMb}M > /sys/block/zram0/disksize 2>/dev/null");
-        sb.writeln(
-            "mkswap /dev/block/zram0 2>/dev/null && swapon /dev/block/zram0 2>/dev/null");
-      }
-      if (swappiness != null) {
-        sb.writeln("echo $swappiness > /proc/sys/vm/swappiness 2>/dev/null");
-      }
-      if (vfsCachePressure != null) {
-        sb.writeln(
-            "echo $vfsCachePressure > /proc/sys/vm/vfs_cache_pressure 2>/dev/null");
-      }
-    }
-
-    // Thermal Mitigation Overrides
-    if (thermalEnabled) {
-      if (thermalDisabled) {
-        sb.writeln("stop thermal-engine; stop thermald; stop mi_thermald;");
-        sb.writeln(
-            "for zone in /sys/class/thermal/thermal_zone*; do echo disabled > \$zone/mode; done;");
-      } else {
-        sb.writeln("start thermal-engine; start thermald;");
-      }
-    }
-
-    // Background DAEMON Activation
-    if (layaEnabled && activeLayaModules.isNotEmpty) {
-      for (final module in activeLayaModules) {
-        final binPath = "/data/data/com.aby.rootify/files/bin/$module";
-        sb.writeln("chmod +x $binPath && nohup $binPath > /dev/null 2>&1 &");
-      }
-    }
-
-    // MTK/QCOM FPSGO Parameter Injection
-    if (fpsGoEnabled == true && fpsGoSettings != null) {
-      final path = fpsGoSettings['path'] as String?;
-      final rawEnabled = fpsGoSettings['enabled'];
-      final enabled = rawEnabled is bool
-          ? rawEnabled
-          : (rawEnabled.toString().toLowerCase() == 'true');
-      final mode = fpsGoSettings['mode'] as String?;
-
-      if (path != null) {
-        final val = enabled ? "1" : "0";
-        sb.writeln("echo $val > $path/fpsgo_enable 2>/dev/null");
-        sb.writeln("echo $val > $path/fbt_enable 2>/dev/null");
-
-        if (fpsGoSettings.containsKey('parameters')) {
-          final params = fpsGoSettings['parameters'] as Map<String, dynamic>;
-          params.forEach((paramPath, value) {
-            sb.writeln("echo $value > $paramPath 2>/dev/null");
-          });
-        }
-        if (mode != null) {
-          sb.writeln("echo '$mode' > $path/mode 2>/dev/null");
-          sb.writeln("echo '$mode' > $path/profile 2>/dev/null");
-        }
-      }
-    }
-
-    // --- Sub
-    // 2. Deployment Logic
-    try {
-      final tempDir = await getTemporaryDirectory();
-      await exec("mkdir -p $moduleDir");
-
-      // Generate module.prop metadata
-      final propContent =
-          "id=rootify\nname=Rootify\nversion=$appVersion\nversionCode=$versionCode\nauthor=Rootify\ndescription=Systemless Rootify Module for persistent tweaks.";
-      final tempProp = File('${tempDir.path}/module.prop');
-      await tempProp.writeAsString(propContent);
-      await exec("mv -f ${tempProp.path} $propPath");
-
-      // Generate service.sh boot-time launcher
-      final serviceContent = '''#!/system/bin/sh
-# (c) 2026 Rootify. All rights reserved.
-MODDIR=\${0%/*}
-chmod +x \$MODDIR/zigbin
-chmod +x \$MODDIR/uninstall.sh
-while [ "\$(getprop sys.boot_completed)" != "1" ]; do
-  sleep 2
-done
-if [ -z "\$(pm list packages com.aby.rootify)" ]; then
-  sh \$MODDIR/uninstall.sh
-  touch \$MODDIR/remove
-  exit 0
-fi
-sh \$MODDIR/zigbin &
-''';
-      final tempService = File('${tempDir.path}/service.sh');
-      await tempService.writeAsString(serviceContent);
-      await exec("mv -f ${tempService.path} $servicePath");
-      await exec("chmod +x $servicePath");
-
-      // Generate action.sh for KSU manager integration
-      const actionContent =
-          "#!/system/bin/sh\nam start -n com.aby.rootify/.MainActivity";
-      final tempAction = File('${tempDir.path}/action.sh');
-      await tempAction.writeAsString(actionContent);
-      await exec("mv -f ${tempAction.path} $actionPath");
-      await exec("chmod +x $actionPath");
-
-      // Generate uninstall.sh for systemless cleanup
-      const uninstallContent = '''#!/system/bin/sh
-# (c) 2026 Rootify. All rights reserved.
-pkill -f laya-kernel-tuner 2>/dev/null
-pkill -f laya-battery-monitor 2>/dev/null
-rm -rf /data/data/com.aby.rootify
-rm -rf /data/user_de/0/com.aby.rootify
-rm -rf /data/local/tmp/rootify*
-rm -f /data/adb/laya_persist.log
-pm uninstall -k com.aby.rootify 2>/dev/null || true
-''';
-      const uninstallPath = "$moduleDir/uninstall.sh";
-      final tempUninstall = File('${tempDir.path}/uninstall.sh');
-      await tempUninstall.writeAsString(uninstallContent);
-      await exec("mv -f ${tempUninstall.path} $uninstallPath");
-      await exec("chmod +x $uninstallPath");
-
-      // Generate final zigbin binary payload
-      final zigbinContent = sb.toString();
-      final tempZigbin = File('${tempDir.path}/zigbin');
-      await tempZigbin.writeAsString(zigbinContent);
-      await exec("mv -f ${tempZigbin.path} $zigbinPath");
-      await exec("chmod +x $zigbinPath");
-
-      // Legacy file cleanup and permission enforcement
-      await exec("rm -f /data/adb/service.d/rootify_boot.sh");
-      await exec("chown -R 0.0 $moduleDir");
-
-      logger.d("RootShell: Magisk Module successfully synced (zigbin).");
-    } catch (e) {
-      logger.e("RootShell: Failed to sync Magisk Module", e);
-    }
+    // Detail: Centralized module construction logic moved to RootifyModuleBuilder
+    // This method now serves as the entry point that provides shell access to the builder.
+    await RootifyModuleBuilder.buildAndSync(
+      this,
+      cpuEnabled: cpuEnabled,
+      cpuDisabled: cpuDisabled,
+      cpuSettings: cpuSettings,
+      zramEnabled: zramEnabled,
+      zramSizeMb: zramSizeMb,
+      zramAlgo: zramAlgo,
+      swappiness: swappiness,
+      vfsCachePressure: vfsCachePressure,
+      appVersion: appVersion,
+      versionCode: versionCode,
+      layaEnabled: layaEnabled,
+      activeLayaModules: activeLayaModules,
+      thermalEnabled: thermalEnabled,
+      thermalDisabled: thermalDisabled,
+      fpsGoEnabled: fpsGoEnabled,
+      fpsGoSettings: fpsGoSettings,
+    );
   }
 }
 
